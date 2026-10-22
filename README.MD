@@ -135,23 +135,39 @@ The deep learning model is built using a stacked 2-layer Recurrent Neural Networ
 
 ---
 
-## 8. Project Execution & Live Demonstration Commands
+## 8. Project Execution & Live Demonstration Options
 
-To demonstrate the working model to the teacher or test custom audio files, open a terminal in the project directory:
+### Option 1: Interactive Streamlit Web UI (Recommended for Teacher Presentation)
+Launch the full interactive web application with audio players, live waveform visualizer, feature inspection, and real-time LSTM classification:
+
+```bash
+cd LSTM-Music-Genre-Classification-master
+streamlit run app.py
+```
+* Automatically opens in your browser at `http://localhost:8501`.
+* Allows uploading custom `.mp3` / `.wav` files or testing preloaded genre tracks.
+
+---
+
+### Option 2: Live GitHub Pages Web App
+The project includes a client-side Web Audio API & Neural Engine interface ready to test on any browser or phone without installing anything:
+* **Live Demo URL**: [https://ken-kanike.github.io/DL-Mini-Project/](https://ken-kanike.github.io/DL-Mini-Project/)
+* Or open `index.html` directly in any web browser!
+
+---
+
+### Option 3: Terminal CLI Prediction
+To run inference directly from the command line:
 
 ```bash
 cd LSTM-Music-Genre-Classification-master
 ```
 
-### Run Genre Prediction:
-Run the inference script on any sample audio file (e.g., Classical, Metal, Pop, Jazz):
-
+Run prediction on sample audio:
 ```powershell
+# Test Classical music
 python -c "import sys, tf_keras, tf_keras.models; sys.modules['keras'] = tf_keras; sys.modules['keras.models'] = tf_keras.models; sys.argv = ['predict_example.py', 'audio/classical_music.mp3']; exec(open('predict_example.py').read())"
-```
 
-To test on other sample genres:
-```powershell
 # Test Metal music
 python -c "import sys, tf_keras, tf_keras.models; sys.modules['keras'] = tf_keras; sys.modules['keras.models'] = tf_keras.models; sys.argv = ['predict_example.py', 'audio/metal_music.mp3']; exec(open('predict_example.py').read())"
 
