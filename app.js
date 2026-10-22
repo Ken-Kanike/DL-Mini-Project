@@ -58,6 +58,10 @@ const backendPill = document.getElementById("backendPill");
 const backendDot = document.getElementById("backendDot");
 const backendStatusText = document.getElementById("backendStatusText");
 const backendHostBadge = document.getElementById("backendHostBadge");
+const wsStatusBadge = document.getElementById("wsStatusBadge");
+
+let healthSocket = null;
+let heartbeatInterval = null;
 
 // Audio Buffer Loader Control
 function showAudioLoader() {
@@ -68,45 +72,128 @@ function hideAudioLoader() {
   if (audioBufferLoader) audioBufferLoader.style.display = "none";
 }
 
-// Check Backend Connection Status
-async function checkBackendHealth() {
+// Derive WebSocket URL dynamically
+function getWebSocketUrl() {
+  let base = API_BASE_URL;
+  if (!base) {
+    base = window.location.origin;
+  }
+  if (!base.startsWith("http://") && !base.startsWith("https://")) {
+    base = "http://127.0.0.1:5000";
+  }
+  const wsProto = base.startsWith("https://") ? "wss://" : "ws://";
+  const host = base.replace(/^https?:\/\//, "");
+  return `${wsProto}${host}/ws/health`;
+}
+
+// Update UI Availability Status (Handles both Localhost and Live Deployed environments)
+function updateUIStatus(isOnline, source = "websocket") {
+  const isLocal = !window.location.hostname.includes("github.io") || API_BASE_URL.includes("127.0.0.1") || API_BASE_URL.includes("localhost");
+  const envLabel = isLocal ? "Local Engine" : "Live Cloud Engine";
+
+  if (isOnline) {
+    if (backendDot) {
+      backendDot.style.background = "var(--accent-emerald)";
+      backendDot.style.boxShadow = "0 0 10px var(--accent-emerald)";
+    }
+    if (backendStatusText) {
+      backendStatusText.innerHTML = `LSTM Engine &bull; <strong>${envLabel} Online</strong> (103,816 Weights)`;
+    }
+    if (backendHostBadge) {
+      backendHostBadge.textContent = `${envLabel}: Online (${API_BASE_URL || 'Active'})`;
+      backendHostBadge.style.borderColor = "rgba(16, 185, 129, 0.4)";
+      backendHostBadge.style.color = "var(--text-primary)";
+    }
+    if (wsStatusBadge) {
+      wsStatusBadge.textContent = source === "websocket" ? "WS: Active Stream" : "HTTP: Active";
+      wsStatusBadge.style.color = "var(--accent-emerald)";
+      wsStatusBadge.style.borderColor = "rgba(16, 185, 129, 0.4)";
+    }
+  } else {
+    if (backendDot) {
+      backendDot.style.background = "#EF4444";
+      backendDot.style.boxShadow = "0 0 10px #EF4444";
+    }
+    if (backendStatusText) {
+      const hint = isLocal ? "Run: python server.py" : "Deploy server.py";
+      backendStatusText.innerHTML = `LSTM Engine &bull; <strong style="color: #EF4444;">${envLabel} Offline</strong> (${hint})`;
+    }
+    if (backendHostBadge) {
+      backendHostBadge.textContent = isLocal ? "Local Server: Offline (Start server.py)" : "Cloud Server: Offline";
+      backendHostBadge.style.borderColor = "rgba(239, 68, 68, 0.4)";
+      backendHostBadge.style.color = "#F87171";
+    }
+    if (wsStatusBadge) {
+      wsStatusBadge.textContent = "WS: Offline";
+      wsStatusBadge.style.color = "#F87171";
+      wsStatusBadge.style.borderColor = "rgba(239, 68, 68, 0.4)";
+    }
+  }
+}
+
+// HTTP Fallback Health Check
+async function checkBackendHealthHTTP() {
   try {
     const res = await fetch(`${API_BASE_URL}/api/status`, { method: "GET" });
     if (res.ok) {
-      const data = await res.json();
       isBackendConnected = true;
-      if (backendDot) {
-        backendDot.style.background = "var(--accent-emerald)";
-        backendDot.style.boxShadow = "0 0 10px var(--accent-emerald)";
-      }
-      if (backendStatusText) {
-        backendStatusText.innerHTML = `LSTM Neural Engine &bull; <strong>Backend Online</strong> (103,816 Weights)`;
-      }
-      if (backendHostBadge) {
-        backendHostBadge.textContent = `Backend: ${API_BASE_URL || 'Active'}`;
-        backendHostBadge.style.borderColor = "rgba(16, 185, 129, 0.4)";
-        backendHostBadge.style.color = "var(--text-primary)";
-      }
+      updateUIStatus(true, "http");
       return true;
     }
-  } catch (err) {
-    console.warn("Backend not yet connected:", err);
+  } catch (err) {}
+  isBackendConnected = false;
+  updateUIStatus(false, "http");
+  return false;
+}
+
+// WebSocket Live Availability & Heartbeat Monitor
+function initWebSocketHealth() {
+  if (healthSocket) {
+    try { healthSocket.close(); } catch(e) {}
   }
 
-  isBackendConnected = false;
-  if (backendDot) {
-    backendDot.style.background = "#EF4444";
-    backendDot.style.boxShadow = "0 0 10px #EF4444";
+  const wsUrl = getWebSocketUrl();
+
+  try {
+    healthSocket = new WebSocket(wsUrl);
+
+    healthSocket.onopen = () => {
+      isBackendConnected = true;
+      updateUIStatus(true, "websocket");
+
+      // Heartbeat ping every 8 seconds
+      if (heartbeatInterval) clearInterval(heartbeatInterval);
+      heartbeatInterval = setInterval(() => {
+        if (healthSocket && healthSocket.readyState === WebSocket.OPEN) {
+          healthSocket.send(JSON.stringify({ type: "ping", time: Date.now() }));
+        }
+      }, 8000);
+    };
+
+    healthSocket.onmessage = (event) => {
+      try {
+        const data = JSON.parse(event.data);
+        if (data.online) {
+          isBackendConnected = true;
+          updateUIStatus(true, "websocket");
+        }
+      } catch (err) {}
+    };
+
+    healthSocket.onerror = () => {
+      // Fallback to HTTP probing
+      checkBackendHealthHTTP();
+    };
+
+    healthSocket.onclose = () => {
+      if (heartbeatInterval) clearInterval(heartbeatInterval);
+      checkBackendHealthHTTP();
+      // Reconnection backoff
+      setTimeout(initWebSocketHealth, 5000);
+    };
+  } catch (err) {
+    checkBackendHealthHTTP();
   }
-  if (backendStatusText) {
-    backendStatusText.innerHTML = `LSTM Engine &bull; <strong style="color: #EF4444;">Backend Offline</strong> (Run: python server.py)`;
-  }
-  if (backendHostBadge) {
-    backendHostBadge.textContent = "Start: python server.py";
-    backendHostBadge.style.borderColor = "rgba(239, 68, 68, 0.4)";
-    backendHostBadge.style.color = "#F87171";
-  }
-  return false;
 }
 
 // Resolve Audio File Path safely
@@ -422,7 +509,7 @@ async function executeLSTM() {
       });
     }
 
-    checkBackendHealth();
+    checkBackendHealthHTTP();
 
   } catch (err) {
     console.error("LSTM Model Execution Error:", err);
@@ -444,7 +531,7 @@ async function executeLSTM() {
     verdictGenreText.textContent = "BACKEND ERROR";
     verdictConfidenceText.textContent = "Server Offline";
     
-    checkBackendHealth();
+    checkBackendHealthHTTP();
   }
 }
 
@@ -471,9 +558,9 @@ function handleCustomUpload(file) {
 
 // Initialization & Event Binding
 document.addEventListener("DOMContentLoaded", () => {
-  // Check backend server connection immediately
-  checkBackendHealth();
-  setInterval(checkBackendHealth, 8000);
+  // Initialize real-time WebSocket health channel with fallback
+  initWebSocketHealth();
+  setInterval(checkBackendHealthHTTP, 10000);
 
   // Play/Pause button
   playPauseBtn.addEventListener("click", togglePlay);

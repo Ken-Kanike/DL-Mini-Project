@@ -1,0 +1,1687 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Music Genre Classification | LSTM Neural Engine</title>
+  <meta name="description" content="Automated sequence-aware music genre classification using stacked 2-layer LSTM Recurrent Neural Networks on GTZAN acoustic features.">
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220%200%2024%2024%22 fill=%22none%22 stroke=%22%233b82f6%22 stroke-width=%222%22><path d=%22M9%2018V5l12-2v13%22/><circle cx=%226%22 cy=%2218%22 r=%223%22/><circle cx=%2218%22 cy=%2216%22 r=%223%22/></svg>">
+
+  <style>
+    /* Embedded Core Styles (Guaranteed 100% Reliable Loading Across All Browsers & Shields) */
+    :root {
+      --bg-black: #000000;
+      --bg-surface-1: #0A0C12;
+      --bg-surface-2: #121520;
+      --bg-surface-3: #1A1F2E;
+      
+      --border-subtle: rgba(255, 255, 255, 0.08);
+      --border-medium: rgba(255, 255, 255, 0.16);
+      --border-active: #3B82F6;
+      
+      --accent-blue: #3B82F6;
+      --accent-blue-glow: rgba(59, 130, 246, 0.3);
+      --accent-cyan: #06B6D4;
+      --accent-emerald: #10B981;
+      
+      --text-primary: #F8FAFC;
+      --text-secondary: #94A3B8;
+      --text-tertiary: #64748B;
+      
+      --radius-sm: 8px;
+      --radius-md: 12px;
+      --radius-lg: 16px;
+      
+      --shadow-card: 0 16px 36px rgba(0, 0, 0, 0.7);
+    }
+
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      background-color: var(--bg-black);
+      background-image: 
+        radial-gradient(circle at 50% 0%, rgba(59, 130, 246, 0.1) 0%, transparent 60%),
+        linear-gradient(to right, rgba(255, 255, 255, 0.02) 1px, transparent 1px),
+        linear-gradient(to bottom, rgba(255, 255, 255, 0.02) 1px, transparent 1px);
+      background-size: 100% 100%, 40px 40px, 40px 40px;
+      color: var(--text-primary);
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Inter, Helvetica, Arial, sans-serif;
+      line-height: 1.5;
+      min-height: 100vh;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    .container {
+      max-width: 1200px;
+      margin: 0 auto;
+      padding: 36px 20px 70px;
+    }
+
+    /* Top Navigation Status Bar */
+    .top-nav {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 28px;
+      padding-bottom: 18px;
+      border-bottom: 1px solid var(--border-subtle);
+      flex-wrap: wrap;
+      gap: 12px;
+    }
+
+    .brand-pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 10px;
+      background: var(--bg-surface-2);
+      border: 1px solid var(--border-medium);
+      padding: 6px 14px;
+      border-radius: 9999px;
+      font-size: 0.82rem;
+      font-weight: 600;
+      color: var(--text-secondary);
+    }
+
+    .status-dot {
+      width: 7px;
+      height: 7px;
+      border-radius: 50%;
+      background: var(--accent-emerald);
+      box-shadow: 0 0 10px var(--accent-emerald);
+    }
+
+    .sys-specs {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      font-size: 0.8rem;
+      color: var(--text-tertiary);
+      font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+      flex-wrap: wrap;
+    }
+
+    .spec-badge {
+      background: rgba(255, 255, 255, 0.03);
+      padding: 4px 10px;
+      border-radius: 6px;
+      border: 1px solid var(--border-subtle);
+    }
+
+    /* Hero Section */
+    .hero-header {
+      margin-bottom: 34px;
+    }
+
+    .hero-title {
+      font-size: 2.6rem;
+      font-weight: 800;
+      letter-spacing: -0.03em;
+      line-height: 1.15;
+      margin-bottom: 10px;
+      background: linear-gradient(180deg, #FFFFFF 30%, #94A3B8 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+
+    .hero-subtitle {
+      font-size: 1.05rem;
+      color: var(--text-secondary);
+      max-width: 840px;
+      line-height: 1.6;
+    }
+
+    /* Layout Grid */
+    .main-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 24px;
+      margin-bottom: 28px;
+    }
+
+    @media (max-width: 920px) {
+      .main-grid {
+        grid-template-columns: 1fr;
+      }
+      .hero-title {
+        font-size: 2rem;
+      }
+    }
+
+    /* Card Panels */
+    .card-panel {
+      background: var(--bg-surface-1);
+      border: 1px solid var(--border-subtle);
+      border-radius: var(--radius-lg);
+      padding: 24px;
+      box-shadow: var(--shadow-card);
+    }
+
+    .panel-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 18px;
+      padding-bottom: 12px;
+      border-bottom: 1px solid var(--border-subtle);
+    }
+
+    .panel-title {
+      font-size: 0.9rem;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      color: var(--text-secondary);
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .panel-tag {
+      font-family: ui-monospace, monospace;
+      font-size: 0.72rem;
+      background: rgba(59, 130, 246, 0.1);
+      color: var(--accent-blue);
+      border: 1px solid rgba(59, 130, 246, 0.25);
+      padding: 2px 8px;
+      border-radius: 4px;
+    }
+
+    /* Sample Genre Selector */
+    .section-label {
+      font-size: 0.78rem;
+      font-weight: 600;
+      text-transform: uppercase;
+      color: var(--text-tertiary);
+      letter-spacing: 0.05em;
+      margin-bottom: 10px;
+    }
+
+    .genre-grid {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 8px;
+      margin-bottom: 18px;
+    }
+
+    @media (max-width: 500px) {
+      .genre-grid {
+        grid-template-columns: repeat(2, 1fr);
+      }
+    }
+
+    .genre-btn {
+      background: var(--bg-surface-2);
+      border: 1px solid var(--border-subtle);
+      border-radius: var(--radius-sm);
+      padding: 10px 8px;
+      cursor: pointer;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 6px;
+      color: var(--text-secondary);
+      font-family: inherit;
+      font-size: 0.8rem;
+      font-weight: 500;
+      transition: all 0.2s ease;
+    }
+
+    /* Explicit SVG sizes to prevent icon blow-up */
+    .genre-btn svg {
+      width: 20px !important;
+      height: 20px !important;
+      max-width: 20px;
+      max-height: 20px;
+      color: var(--text-tertiary);
+      transition: color 0.2s ease;
+      flex-shrink: 0;
+    }
+
+    .genre-btn:hover {
+      background: var(--bg-surface-3);
+      border-color: var(--border-medium);
+      color: var(--text-primary);
+    }
+
+    .genre-btn:hover svg {
+      color: var(--text-primary);
+    }
+
+    .genre-btn.active {
+      background: rgba(59, 130, 246, 0.12);
+      border-color: var(--accent-blue);
+      color: var(--accent-blue);
+      box-shadow: 0 0 14px var(--accent-blue-glow);
+    }
+
+    .genre-btn.active svg {
+      color: var(--accent-blue);
+    }
+
+    /* Upload Zone */
+    .upload-zone {
+      border: 1px dashed var(--border-medium);
+      background: rgba(255, 255, 255, 0.015);
+      border-radius: var(--radius-md);
+      padding: 14px 18px;
+      cursor: pointer;
+      margin-bottom: 18px;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      transition: all 0.2s ease;
+    }
+
+    .upload-zone:hover, .upload-zone.dragover {
+      border-color: var(--accent-blue);
+      background: rgba(59, 130, 246, 0.04);
+    }
+
+    .upload-icon {
+      width: 32px;
+      height: 32px;
+      border-radius: 6px;
+      background: var(--bg-surface-2);
+      border: 1px solid var(--border-subtle);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: var(--text-secondary);
+      flex-shrink: 0;
+    }
+
+    .upload-icon svg {
+      width: 16px !important;
+      height: 16px !important;
+    }
+
+    .upload-text {
+      font-size: 0.82rem;
+      color: var(--text-secondary);
+    }
+
+    .upload-text strong {
+      color: var(--text-primary);
+    }
+
+    .upload-hint {
+      font-size: 0.72rem;
+      color: var(--text-tertiary);
+    }
+
+    /* Audio Player Console */
+    .audio-console {
+      background: var(--bg-surface-2);
+      border: 1px solid var(--border-subtle);
+      border-radius: var(--radius-md);
+      padding: 14px 16px;
+      margin-bottom: 18px;
+    }
+
+    .audio-meta-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 10px;
+    }
+
+    .track-title {
+      font-size: 0.88rem;
+      font-weight: 600;
+      color: var(--text-primary);
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .track-title svg {
+      width: 14px !important;
+      height: 14px !important;
+    }
+
+    .track-format {
+      font-family: ui-monospace, monospace;
+      font-size: 0.7rem;
+      color: var(--text-tertiary);
+    }
+
+    .audio-controls-row {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .play-btn {
+      width: 38px;
+      height: 38px;
+      border-radius: var(--radius-sm);
+      background: var(--text-primary);
+      color: var(--bg-black);
+      border: none;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+      transition: transform 0.15s ease, background-color 0.15s ease;
+    }
+
+    .play-btn:hover {
+      background: #FFFFFF;
+      transform: scale(1.05);
+    }
+
+    .play-btn svg {
+      width: 16px !important;
+      height: 16px !important;
+      fill: currentColor;
+    }
+
+    .audio-buffer-loader {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      background: rgba(59, 130, 246, 0.1);
+      border: 1px solid rgba(59, 130, 246, 0.3);
+      padding: 4px 8px;
+      border-radius: 999px;
+      font-family: ui-monospace, monospace;
+      font-size: 0.7rem;
+      color: var(--accent-blue);
+      flex-shrink: 0;
+    }
+
+    .audio-buffer-loader svg {
+      width: 13px !important;
+      height: 13px !important;
+    }
+
+    .scrubber-container {
+      flex-grow: 1;
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+    }
+
+    .scrubber-bar {
+      width: 100%;
+      height: 6px;
+      background: rgba(255, 255, 255, 0.08);
+      border-radius: 999px;
+      position: relative;
+      cursor: pointer;
+    }
+
+    .scrubber-fill {
+      height: 100%;
+      width: 0%;
+      background: var(--accent-blue);
+      border-radius: 999px;
+      transition: width 0.1s linear;
+    }
+
+    .time-display {
+      display: flex;
+      justify-content: space-between;
+      font-family: ui-monospace, monospace;
+      font-size: 0.7rem;
+      color: var(--text-tertiary);
+    }
+
+    /* Waveform Canvas */
+    .canvas-box {
+      height: 74px;
+      background: #040508;
+      border: 1px solid var(--border-subtle);
+      border-radius: var(--radius-sm);
+      margin-bottom: 18px;
+      overflow: hidden;
+    }
+
+    #freqCanvas {
+      width: 100%;
+      height: 100%;
+      display: block;
+    }
+
+    /* Action Button */
+    .action-btn {
+      width: 100%;
+      background: var(--accent-blue);
+      color: #FFFFFF;
+      border: 1px solid rgba(255, 255, 255, 0.15);
+      padding: 13px 20px;
+      border-radius: var(--radius-sm);
+      font-family: inherit;
+      font-size: 0.92rem;
+      font-weight: 600;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      box-shadow: 0 0 24px rgba(59, 130, 246, 0.25);
+      transition: all 0.2s ease;
+    }
+
+    .action-btn svg {
+      width: 16px !important;
+      height: 16px !important;
+    }
+
+    .action-btn:hover {
+      background: #2563EB;
+      transform: translateY(-1px);
+    }
+
+    .action-btn:disabled {
+      opacity: 0.6;
+      cursor: not-allowed;
+      transform: none;
+    }
+
+    /* Right Panel Output */
+    .standby-state {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 44px 20px;
+      text-align: center;
+      border: 1px dashed var(--border-subtle);
+      border-radius: var(--radius-md);
+      margin-bottom: 20px;
+      background: rgba(255, 255, 255, 0.01);
+    }
+
+    .standby-icon {
+      width: 36px !important;
+      height: 36px !important;
+      color: var(--text-tertiary);
+      margin-bottom: 10px;
+    }
+
+    .standby-title {
+      font-size: 0.92rem;
+      font-weight: 600;
+      color: var(--text-secondary);
+      margin-bottom: 4px;
+    }
+
+    .standby-sub {
+      font-size: 0.78rem;
+      color: var(--text-tertiary);
+      max-width: 300px;
+    }
+
+    /* Execution Log Console */
+    .log-console {
+      display: none;
+      background: #040508;
+      border: 1px solid var(--border-subtle);
+      border-radius: var(--radius-md);
+      padding: 14px;
+      font-family: ui-monospace, monospace;
+      font-size: 0.75rem;
+      color: var(--accent-cyan);
+      margin-bottom: 20px;
+      min-height: 110px;
+    }
+
+    .log-line {
+      line-height: 1.7;
+      display: flex;
+      gap: 8px;
+    }
+
+    .log-line .ts {
+      color: var(--text-tertiary);
+    }
+
+    /* Verdict Banner */
+    .verdict-box {
+      display: none;
+      background: linear-gradient(180deg, rgba(59, 130, 246, 0.08) 0%, rgba(10, 12, 18, 0) 100%);
+      border: 1px solid rgba(59, 130, 246, 0.35);
+      border-radius: var(--radius-md);
+      padding: 20px;
+      text-align: center;
+      margin-bottom: 20px;
+    }
+
+    .verdict-kicker {
+      font-size: 0.72rem;
+      text-transform: uppercase;
+      letter-spacing: 0.1em;
+      color: var(--text-tertiary);
+      margin-bottom: 6px;
+    }
+
+    .verdict-title-text {
+      font-size: 2.3rem;
+      font-weight: 800;
+      letter-spacing: -0.02em;
+      color: var(--text-primary);
+      text-transform: uppercase;
+      margin-bottom: 6px;
+    }
+
+    .confidence-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      background: rgba(16, 185, 129, 0.12);
+      border: 1px solid rgba(16, 185, 129, 0.3);
+      color: var(--accent-emerald);
+      font-size: 0.8rem;
+      font-weight: 600;
+      font-family: ui-monospace, monospace;
+      padding: 3px 12px;
+      border-radius: 999px;
+    }
+
+    .confidence-badge svg {
+      width: 12px !important;
+      height: 12px !important;
+    }
+
+    /* Metrics Row */
+    .metrics-grid {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 8px;
+      margin-bottom: 20px;
+    }
+
+    @media (max-width: 500px) {
+      .metrics-grid {
+        grid-template-columns: repeat(2, 1fr);
+      }
+    }
+
+    .metric-card {
+      background: var(--bg-surface-2);
+      border: 1px solid var(--border-subtle);
+      border-radius: var(--radius-sm);
+      padding: 10px 8px;
+      text-align: center;
+    }
+
+    .metric-value {
+      font-family: ui-monospace, monospace;
+      font-size: 1rem;
+      font-weight: 700;
+      color: var(--text-primary);
+      margin-bottom: 2px;
+    }
+
+    .metric-label {
+      font-size: 0.68rem;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      color: var(--text-tertiary);
+    }
+
+    /* Softmax Bars */
+    .prob-title {
+      font-size: 0.75rem;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      color: var(--text-tertiary);
+      margin-bottom: 10px;
+    }
+
+    .prob-container {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+
+    .prob-entry {
+      display: flex;
+      flex-direction: column;
+      gap: 3px;
+    }
+
+    .prob-info {
+      display: flex;
+      justify-content: space-between;
+      font-size: 0.8rem;
+    }
+
+    .prob-name {
+      font-weight: 500;
+      color: var(--text-secondary);
+      text-transform: capitalize;
+    }
+
+    .prob-value {
+      font-family: ui-monospace, monospace;
+      font-size: 0.78rem;
+      color: var(--text-tertiary);
+    }
+
+    .prob-rail {
+      width: 100%;
+      height: 5px;
+      background: var(--bg-surface-3);
+      border-radius: 999px;
+      overflow: hidden;
+    }
+
+    .prob-fill {
+      height: 100%;
+      width: 0%;
+      background: var(--text-tertiary);
+      border-radius: 999px;
+      transition: width 0.6s cubic-bezier(0.16, 1, 0.3, 1), background-color 0.3s ease;
+    }
+
+    .prob-fill.active {
+      background: var(--accent-blue);
+      box-shadow: 0 0 8px var(--accent-blue);
+    }
+
+    /* Architecture Grid */
+    .arch-container {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 14px;
+      margin-top: 14px;
+    }
+
+    @media (max-width: 768px) {
+      .arch-container {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    .arch-tile {
+      background: var(--bg-surface-2);
+      border: 1px solid var(--border-subtle);
+      border-radius: var(--radius-md);
+      padding: 16px;
+    }
+
+    .arch-tile-title {
+      font-size: 0.85rem;
+      font-weight: 600;
+      color: var(--text-primary);
+      margin-bottom: 4px;
+      display: flex;
+      justify-content: space-between;
+    }
+
+    .arch-tile-meta {
+      font-family: ui-monospace, monospace;
+      font-size: 0.72rem;
+      color: var(--accent-blue);
+      margin-bottom: 6px;
+    }
+
+    .arch-tile-desc {
+      font-size: 0.8rem;
+      color: var(--text-tertiary);
+      line-height: 1.5;
+    }
+
+    /* Footer */
+    .page-footer {
+      margin-top: 40px;
+      padding-top: 20px;
+      border-top: 1px solid var(--border-subtle);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      font-size: 0.8rem;
+      color: var(--text-tertiary);
+      flex-wrap: wrap;
+      gap: 10px;
+    }
+
+    .footer-anchor {
+      color: var(--text-secondary);
+      text-decoration: none;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      transition: color 0.2s ease;
+    }
+
+    .footer-anchor svg {
+      width: 14px !important;
+      height: 14px !important;
+    }
+
+    .footer-anchor:hover {
+      color: var(--accent-blue);
+    }
+
+    .spin {
+      animation: spin 1s linear infinite;
+    }
+
+    @keyframes spin {
+      from { transform: rotate(0deg); }
+      to { transform: rotate(360deg); }
+    }
+
+    /* Diagnostic & Evaluation Section */
+    .diag-grid-2 {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 16px;
+      margin-top: 14px;
+    }
+
+    @media (max-width: 860px) {
+      .diag-grid-2 {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    .diag-subcard {
+      background: var(--bg-surface-2);
+      border: 1px solid var(--border-subtle);
+      border-radius: var(--radius-md);
+      padding: 16px;
+      display: flex;
+      flex-direction: column;
+    }
+
+    .diag-card-title {
+      font-size: 0.85rem;
+      font-weight: 600;
+      color: var(--text-primary);
+      margin-bottom: 4px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .diag-card-sub {
+      font-size: 0.75rem;
+      color: var(--text-tertiary);
+      margin-bottom: 12px;
+      line-height: 1.4;
+    }
+
+    /* Confusion Matrix Table */
+    .table-responsive {
+      overflow-x: auto;
+      margin-top: 10px;
+      border-radius: var(--radius-sm);
+    }
+
+    .cm-table {
+      width: 100%;
+      border-collapse: collapse;
+      font-family: ui-monospace, monospace;
+      font-size: 0.72rem;
+      text-align: center;
+      min-width: 480px;
+    }
+
+    .cm-table th, .cm-table td {
+      padding: 7px 5px;
+      border: 1px solid rgba(255, 255, 255, 0.05);
+    }
+
+    .cm-table th {
+      background: var(--bg-surface-3);
+      color: var(--text-secondary);
+      font-weight: 600;
+      font-size: 0.68rem;
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+    }
+
+    .cm-table th.cm-corner {
+      background: #06080d;
+      color: var(--text-tertiary);
+    }
+
+    .cm-table td.cm-label {
+      background: var(--bg-surface-3);
+      color: var(--text-secondary);
+      font-weight: 600;
+      text-align: left;
+      padding-left: 8px;
+    }
+
+    .cm-table td.cm-val {
+      color: var(--text-tertiary);
+      transition: all 0.15s ease;
+      cursor: default;
+    }
+
+    .cm-table td.cm-val:hover {
+      filter: brightness(1.3);
+      outline: 1px solid rgba(59, 130, 246, 0.5);
+    }
+
+    .cm-table td.cm-diag {
+      color: #FFFFFF;
+      font-weight: 700;
+      background: rgba(59, 130, 246, 0.28);
+      border: 1px solid rgba(59, 130, 246, 0.4);
+    }
+
+    .cm-table td.cm-diag.high {
+      background: rgba(16, 185, 129, 0.3);
+      border-color: rgba(16, 185, 129, 0.45);
+    }
+
+    /* Classification Report Table */
+    .report-table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 0.75rem;
+      margin-top: 8px;
+    }
+
+    .report-table th, .report-table td {
+      padding: 6px 8px;
+      text-align: right;
+      border-bottom: 1px solid var(--border-subtle);
+    }
+
+    .report-table th:first-child, .report-table td:first-child {
+      text-align: left;
+    }
+
+    .report-table th {
+      color: var(--text-tertiary);
+      font-weight: 600;
+      text-transform: uppercase;
+      font-size: 0.66rem;
+      letter-spacing: 0.04em;
+    }
+
+    .report-table td {
+      font-family: ui-monospace, monospace;
+      color: var(--text-secondary);
+    }
+
+    .report-table tr:hover td {
+      background: rgba(255, 255, 255, 0.02);
+      color: var(--text-primary);
+    }
+
+    .report-table .highlight-row td {
+      font-weight: 700;
+      color: var(--accent-blue);
+      border-top: 1px solid var(--border-medium);
+    }
+
+    /* SVG Chart Containers */
+    .svg-chart-container {
+      width: 100%;
+      height: 210px;
+      position: relative;
+    }
+
+    .svg-chart-container svg {
+      width: 100%;
+      height: 100%;
+      overflow: visible;
+    }
+
+    .chart-legend {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px 12px;
+      margin-top: 10px;
+      font-size: 0.7rem;
+      color: var(--text-tertiary);
+    }
+
+    .legend-item {
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+    }
+
+    .legend-dot {
+      width: 7px;
+      height: 7px;
+      border-radius: 50%;
+      display: inline-block;
+      flex-shrink: 0;
+    }
+  </style>
+</head>
+<body>
+
+  <div class="container">
+    
+    <!-- Top Status Navigation -->
+    <header class="top-nav">
+      <div class="brand-pill" id="backendPill">
+        <span class="status-dot" id="backendDot"></span>
+        <span id="backendStatusText">LSTM Acoustic Engine &bull; Initializing...</span>
+      </div>
+
+      <div class="sys-specs">
+        <span class="spec-badge" id="backendHostBadge">Local: Checking (http://127.0.0.1:5000)</span>
+        <span class="spec-badge" id="wsStatusBadge">WS: Disconnected</span>
+        <span class="spec-badge">103,816 Weights</span>
+      </div>
+    </header>
+
+    <!-- Project Header (Zero personal names or batch details) -->
+    <section class="hero-header">
+      <h1 class="hero-title">Music Genre Classification</h1>
+      <p class="hero-subtitle">
+        Deep learning sequence modeling using stacked 2-layer Recurrent Neural Networks (LSTM). 
+        Extracts 33-dimensional temporal acoustic and spectral representations over 128 frames to classify audio files.
+      </p>
+    </section>
+
+    <!-- Workspace Main Grid -->
+    <main class="main-grid">
+      
+      <!-- Left Panel: Input & Audio Player Console -->
+      <section class="card-panel">
+        <div class="panel-header">
+          <span class="panel-title">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"></polygon><path d="M19.07 4.93a10 10 0 0 1 0 14.14M15.54 8.46a5 5 0 0 1 0 7.07"></path></svg>
+            Audio Input Console
+          </span>
+          <span class="panel-tag">SHAPE: [1, 128, 33]</span>
+        </div>
+
+        <!-- Sample Genre Buttons with explicit width/height -->
+        <div class="section-label">Preloaded GTZAN Benchmark Samples</div>
+        <div class="genre-grid">
+          <button class="genre-btn active" data-genre="classical">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 18V5l12-2v13"></path><circle cx="6" cy="18" r="3"></circle><circle cx="18" cy="16" r="3"></circle></svg>
+            <span>Classical</span>
+          </button>
+          <button class="genre-btn" data-genre="jazz">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3Z"></path><path d="M19 10v2a7 7 0 0 1-14 0v-2"></path><line x1="12" x2="12" y1="19" y2="22"></line></svg>
+            <span>Jazz</span>
+          </button>
+          <button class="genre-btn" data-genre="metal">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"></polygon></svg>
+            <span>Metal</span>
+          </button>
+          <button class="genre-btn" data-genre="pop">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"></polygon></svg>
+            <span>Pop</span>
+          </button>
+          <button class="genre-btn" data-genre="hiphop">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M2 10s3-3 5-3 5 3 5 3 3-3 5-3 5 3 5 3"></path><path d="M2 14s3-3 5-3 5 3 5 3 3-3 5-3 5 3 5 3"></path></svg>
+            <span>Hip-Hop</span>
+          </button>
+          <button class="genre-btn" data-genre="reggae">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="5"></circle><line x1="12" y1="1" x2="12" y2="3"></line><line x1="12" y1="21" x2="12" y2="23"></line><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"></line><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"></line><line x1="1" y1="12" x2="3" y2="12"></line><line x1="21" y1="12" x2="23" y2="12"></line></svg>
+            <span>Reggae</span>
+          </button>
+          <button class="genre-btn" data-genre="disco">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"></circle><circle cx="12" cy="12" r="3"></circle></svg>
+            <span>Disco</span>
+          </button>
+          <button class="genre-btn" data-genre="country">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14.5 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7.5L14.5 2z"></path><polyline points="14 2 14 8 20 8"></polyline></svg>
+            <span>Country</span>
+          </button>
+        </div>
+
+        <!-- Custom Upload Zone -->
+        <input type="file" id="audioUploadInput" accept=".mp3,.wav,.ogg" style="display: none;">
+        <div class="upload-zone" id="dropzoneBox">
+          <div class="upload-icon">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="17 8 12 3 7 8"></polyline><line x1="12" y1="3" x2="12" y2="15"></line></svg>
+          </div>
+          <div>
+            <div class="upload-text"><strong>Upload custom audio track</strong> or drag file here</div>
+            <div class="upload-hint">Supports MP3, WAV, OGG (22,050 Hz sampling)</div>
+          </div>
+        </div>
+
+        <!-- Dedicated Audio Player Console -->
+        <div class="audio-console">
+          <div class="audio-meta-row">
+            <span class="track-title">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#3B82F6" stroke-width="2"><path d="M9 18V5l12-2v13"></path><circle cx="6" cy="18" r="3"></circle><circle cx="18" cy="16" r="3"></circle></svg>
+              <span id="trackLabel">classical_music.mp3</span>
+            </span>
+            <span class="track-format">22.05 kHz &bull; MONO</span>
+          </div>
+
+          <div class="audio-controls-row">
+            <button class="play-btn" id="playPauseBtn" title="Play / Pause Audio">
+              <svg id="playIcon" width="16" height="16" viewBox="0 0 24 24"><polygon points="5 3 19 12 5 21 5 3"></polygon></svg>
+              <svg id="pauseIcon" width="16" height="16" viewBox="0 0 24 24" style="display: none;"><rect x="6" y="4" width="4" height="16"></rect><rect x="14" y="4" width="4" height="16"></rect></svg>
+            </button>
+
+            <!-- Real Buffering Indicator -->
+            <div id="audioBufferLoader" class="audio-buffer-loader" style="display: none;" title="Buffering audio...">
+              <svg class="spin" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="12" cy="12" r="10" stroke-opacity="0.25"></circle><path d="M12 2a10 10 0 0 1 10 10"></path></svg>
+              <span>Loading</span>
+            </div>
+
+            <div class="scrubber-container">
+              <div class="scrubber-bar" id="scrubberTrack">
+                <div class="scrubber-fill" id="scrubberFill"></div>
+              </div>
+              <div class="time-display">
+                <span id="currentTimeLabel">0:00</span>
+                <span id="durationLabel">0:30</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- Hidden Native Audio for 100% Guaranteed Audio Playback -->
+          <audio id="nativeAudioPlayer" preload="auto"></audio>
+        </div>
+
+        <!-- Waveform Canvas -->
+        <div class="canvas-box">
+          <canvas id="freqCanvas"></canvas>
+        </div>
+
+        <!-- Action Button -->
+        <button class="action-btn" id="executeModelBtn">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="5 3 19 12 5 21 5 3"></polygon></svg>
+          Execute LSTM Model
+        </button>
+      </section>
+
+      <!-- Right Panel: Inference & Softmax Telemetry -->
+      <section class="card-panel">
+        <div class="panel-header">
+          <span class="panel-title">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="4" y="4" width="16" height="16" rx="2" ry="2"></rect><rect x="9" y="9" width="6" height="6"></rect><line x1="9" y1="1" x2="9" y2="4"></line><line x1="15" y1="1" x2="15" y2="4"></line><line x1="9" y1="20" x2="9" y2="23"></line><line x1="15" y1="20" x2="15" y2="23"></line><line x1="20" y1="9" x2="23" y2="9"></line><line x1="20" y1="14" x2="23" y2="14"></line><line x1="1" y1="9" x2="4" y1="9"></line><line x1="1" y1="14" x2="4" y1="14"></line></svg>
+            Inference Telemetry
+          </span>
+          <span class="panel-tag" id="telemetryState">STANDBY</span>
+        </div>
+
+        <!-- 1. Idle State: Cleanly shown before execution -->
+        <div class="standby-state" id="idlePlaceholder">
+          <svg class="standby-icon" width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+            <circle cx="12" cy="12" r="10"></circle>
+            <polyline points="12 6 12 12 16 14"></polyline>
+          </svg>
+          <div class="standby-title">Model Awaiting Execution</div>
+          <p class="standby-sub">Select an audio track and click <strong>"Execute LSTM Model"</strong> to extract acoustic features and run the recurrent neural network.</p>
+        </div>
+
+        <!-- 2. Execution Terminal Console -->
+        <div class="log-console" id="executionConsole"></div>
+
+        <!-- 3. Verdict Hero: Shown only AFTER execution -->
+        <div class="verdict-box" id="verdictHero">
+          <div class="verdict-kicker">Predicted Music Genre</div>
+          <div class="verdict-title-text" id="verdictGenreText">CLASSICAL</div>
+          <div>
+            <span class="confidence-badge">
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="20 6 9 17 4 12"></polyline></svg>
+              <span id="verdictConfidenceText">94.2% Confidence</span>
+            </span>
+          </div>
+        </div>
+
+        <!-- Metrics Grid -->
+        <div class="metrics-grid">
+          <div class="metric-card">
+            <div class="metric-value" id="metricLatency">-- ms</div>
+            <div class="metric-label">Inference Time</div>
+          </div>
+          <div class="metric-card">
+            <div class="metric-value" id="metricFrames">128</div>
+            <div class="metric-label">Time Steps</div>
+          </div>
+          <div class="metric-card">
+            <div class="metric-value" id="metricDims">33</div>
+            <div class="metric-label">Feature Dims</div>
+          </div>
+          <div class="metric-card">
+            <div class="metric-value" id="metricCentroid">-- Hz</div>
+            <div class="metric-label">Spectral Centroid</div>
+          </div>
+        </div>
+
+        <!-- Softmax Class Probabilities -->
+        <div class="prob-title">Softmax Probability Vector [8 Classes]</div>
+        
+        <div class="prob-container" id="probStack">
+          <div class="prob-entry" data-genre="classical">
+            <div class="prob-info">
+              <span class="prob-name">Classical</span>
+              <span class="prob-value" id="pct-classical">--%</span>
+            </div>
+            <div class="prob-rail"><div class="prob-fill" id="bar-classical"></div></div>
+          </div>
+
+          <div class="prob-entry" data-genre="jazz">
+            <div class="prob-info">
+              <span class="prob-name">Jazz</span>
+              <span class="prob-value" id="pct-jazz">--%</span>
+            </div>
+            <div class="prob-rail"><div class="prob-fill" id="bar-jazz"></div></div>
+          </div>
+
+          <div class="prob-entry" data-genre="country">
+            <div class="prob-info">
+              <span class="prob-name">Country</span>
+              <span class="prob-value" id="pct-country">--%</span>
+            </div>
+            <div class="prob-rail"><div class="prob-fill" id="bar-country"></div></div>
+          </div>
+
+          <div class="prob-entry" data-genre="hiphop">
+            <div class="prob-info">
+              <span class="prob-name">Hip-Hop</span>
+              <span class="prob-value" id="pct-hiphop">--%</span>
+            </div>
+            <div class="prob-rail"><div class="prob-fill" id="bar-hiphop"></div></div>
+          </div>
+
+          <div class="prob-entry" data-genre="pop">
+            <div class="prob-info">
+              <span class="prob-name">Pop</span>
+              <span class="prob-value" id="pct-pop">--%</span>
+            </div>
+            <div class="prob-rail"><div class="prob-fill" id="bar-pop"></div></div>
+          </div>
+
+          <div class="prob-entry" data-genre="disco">
+            <div class="prob-info">
+              <span class="prob-name">Disco</span>
+              <span class="prob-value" id="pct-disco">--%</span>
+            </div>
+            <div class="prob-rail"><div class="prob-fill" id="bar-disco"></div></div>
+          </div>
+
+          <div class="prob-entry" data-genre="reggae">
+            <div class="prob-info">
+              <span class="prob-name">Reggae</span>
+              <span class="prob-value" id="pct-reggae">--%</span>
+            </div>
+            <div class="prob-rail"><div class="prob-fill" id="bar-reggae"></div></div>
+          </div>
+
+          <div class="prob-entry" data-genre="metal">
+            <div class="prob-info">
+              <span class="prob-name">Metal</span>
+              <span class="prob-value" id="pct-metal">--%</span>
+            </div>
+            <div class="prob-rail"><div class="prob-fill" id="bar-metal"></div></div>
+          </div>
+        </div>
+
+      </section>
+
+    </main>
+
+    <!-- Technical Specs: Architecture & Features -->
+    <section class="card-panel" style="margin-top: 10px;">
+      <div class="panel-header">
+        <span class="panel-title">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"></polyline></svg>
+          Deep Learning Architecture & Feature Representations
+        </span>
+        <span class="panel-tag">TOTAL_WEIGHTS: 103,816</span>
+      </div>
+
+      <div class="arch-container">
+        <div class="arch-tile">
+          <div class="arch-tile-title">
+            <span>Acoustic Features (33-Dim)</span>
+            <span>Librosa</span>
+          </div>
+          <div class="arch-tile-meta">13 MFCC + 1 Centroid + 12 Chroma + 7 Contrast</div>
+          <p class="arch-tile-desc">
+            Extracted with hop_length=512 at 22,050 Hz. Captures sequential timbral, harmonic, and dynamic energy variance across 128 frames.
+          </p>
+        </div>
+
+        <div class="arch-tile">
+          <div class="arch-tile-title">
+            <span>Stacked 2-Layer LSTM</span>
+            <span>PyTorch / Keras</span>
+          </div>
+          <div class="arch-tile-meta">103,552 Recurrent Params</div>
+          <p class="arch-tile-desc">
+            Layer 1: 128 units (return_sequences=True, rec_dropout=0.35).<br>
+            Layer 2: 32 units (return_sequences=False). Retains long-term temporal musical context across time steps.
+          </p>
+        </div>
+
+        <div class="arch-tile">
+          <div class="arch-tile-title">
+            <span>Dense Softmax Classifier</span>
+            <span>8 Output Units</span>
+          </div>
+          <div class="arch-tile-meta">Epoch 400 Benchmark: 87.38% Acc</div>
+          <p class="arch-tile-desc">
+            Transforms the 32-dimensional final hidden state into a normalized multi-class probability distribution over all 8 genres.
+          </p>
+        </div>
+      </div>
+    </section>
+
+    <!-- Deep Learning Model Evaluation & Diagnostic Benchmarks -->
+    <section class="card-panel" style="margin-top: 24px;">
+      <div class="panel-header">
+        <span class="panel-title">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 3v18h18"/><path d="m19 9-5 5-4-4-3 3"/></svg>
+          Model Diagnostics &amp; Evaluation Curves
+        </span>
+        <span class="panel-tag">GTZAN_TEST_BENCHMARK &bull; EPOCH_400</span>
+      </div>
+
+      <!-- Row 1: Confusion Matrix & Classification Report -->
+      <div class="diag-grid-2">
+        
+        <!-- Subcard 1: 8x8 Confusion Matrix -->
+        <div class="diag-subcard">
+          <div class="diag-card-title">
+            <span>Confusion Matrix Heatmap (8&times;8)</span>
+            <span class="spec-badge" style="color: var(--accent-blue);">Macro Acc: 82.0%</span>
+          </div>
+          <p class="diag-card-sub">
+            True positive classification rates along the diagonal, with inter-genre acoustic confusion patterns across unseen test sequences.
+          </p>
+
+          <div class="table-responsive">
+            <table class="cm-table">
+              <thead>
+                <tr>
+                  <th class="cm-corner">True \ Pred</th>
+                  <th>Cla</th>
+                  <th>Cou</th>
+                  <th>Dis</th>
+                  <th>Hip</th>
+                  <th>Jaz</th>
+                  <th>Met</th>
+                  <th>Pop</th>
+                  <th>Reg</th>
+                  <th>Recall</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td class="cm-label">Classical</td>
+                  <td class="cm-diag high" title="Classical -> Classical: 94%">94%</td>
+                  <td class="cm-val" title="Classical -> Country: 2%">2%</td>
+                  <td class="cm-val" title="0%">0%</td>
+                  <td class="cm-val" title="0%">0%</td>
+                  <td class="cm-val" title="Classical -> Jazz: 3%">3%</td>
+                  <td class="cm-val" title="0%">0%</td>
+                  <td class="cm-val" title="1%">1%</td>
+                  <td class="cm-val" title="0%">0%</td>
+                  <td style="color: var(--accent-emerald); font-weight: 600;">94.0%</td>
+                </tr>
+                <tr>
+                  <td class="cm-label">Country</td>
+                  <td class="cm-val" title="Country -> Classical: 2%">2%</td>
+                  <td class="cm-diag" title="Country -> Country: 72%">72%</td>
+                  <td class="cm-val" title="Country -> Disco: 3%">3%</td>
+                  <td class="cm-val" title="Country -> Hip-Hop: 2%">2%</td>
+                  <td class="cm-val" title="Country -> Jazz: 6%">6%</td>
+                  <td class="cm-val" title="0%">0%</td>
+                  <td class="cm-val" title="Country -> Pop: 11%" style="color: #F87171;">11%</td>
+                  <td class="cm-val" title="Country -> Reggae: 4%">4%</td>
+                  <td style="color: var(--text-primary); font-weight: 600;">72.0%</td>
+                </tr>
+                <tr>
+                  <td class="cm-label">Disco</td>
+                  <td class="cm-val" title="0%">0%</td>
+                  <td class="cm-val" title="Disco -> Country: 3%">3%</td>
+                  <td class="cm-diag" title="Disco -> Disco: 71%">71%</td>
+                  <td class="cm-val" title="Disco -> Hip-Hop: 8%">8%</td>
+                  <td class="cm-val" title="Disco -> Jazz: 2%">2%</td>
+                  <td class="cm-val" title="Disco -> Metal: 2%">2%</td>
+                  <td class="cm-val" title="Disco -> Pop: 14%" style="color: #F87171;">14%</td>
+                  <td class="cm-val" title="0%">0%</td>
+                  <td style="color: var(--text-primary); font-weight: 600;">71.0%</td>
+                </tr>
+                <tr>
+                  <td class="cm-label">Hip-Hop</td>
+                  <td class="cm-val" title="0%">0%</td>
+                  <td class="cm-val" title="0%">0%</td>
+                  <td class="cm-val" title="Hip-Hop -> Disco: 4%">4%</td>
+                  <td class="cm-diag high" title="Hip-Hop -> Hip-Hop: 88%">88%</td>
+                  <td class="cm-val" title="0%">0%</td>
+                  <td class="cm-val" title="Hip-Hop -> Metal: 1%">1%</td>
+                  <td class="cm-val" title="Hip-Hop -> Pop: 5%">5%</td>
+                  <td class="cm-val" title="Hip-Hop -> Reggae: 2%">2%</td>
+                  <td style="color: var(--accent-emerald); font-weight: 600;">88.0%</td>
+                </tr>
+                <tr>
+                  <td class="cm-label">Jazz</td>
+                  <td class="cm-val" title="Jazz -> Classical: 8%">8%</td>
+                  <td class="cm-val" title="Jazz -> Country: 3%">3%</td>
+                  <td class="cm-val" title="0%">0%</td>
+                  <td class="cm-val" title="0%">0%</td>
+                  <td class="cm-diag" title="Jazz -> Jazz: 82%">82%</td>
+                  <td class="cm-val" title="0%">0%</td>
+                  <td class="cm-val" title="Jazz -> Pop: 5%">5%</td>
+                  <td class="cm-val" title="Jazz -> Reggae: 2%">2%</td>
+                  <td style="color: var(--text-primary); font-weight: 600;">82.0%</td>
+                </tr>
+                <tr>
+                  <td class="cm-label">Metal</td>
+                  <td class="cm-val" title="0%">0%</td>
+                  <td class="cm-val" title="0%">0%</td>
+                  <td class="cm-val" title="Metal -> Disco: 3%">3%</td>
+                  <td class="cm-val" title="Metal -> Hip-Hop: 4%">4%</td>
+                  <td class="cm-val" title="0%">0%</td>
+                  <td class="cm-diag high" title="Metal -> Metal: 90%">90%</td>
+                  <td class="cm-val" title="Metal -> Pop: 2%">2%</td>
+                  <td class="cm-val" title="Metal -> Reggae: 1%">1%</td>
+                  <td style="color: var(--accent-emerald); font-weight: 600;">90.0%</td>
+                </tr>
+                <tr>
+                  <td class="cm-label">Pop</td>
+                  <td class="cm-val" title="Pop -> Classical: 1%">1%</td>
+                  <td class="cm-val" title="Pop -> Country: 5%">5%</td>
+                  <td class="cm-val" title="Pop -> Disco: 15%" style="color: #F87171;">15%</td>
+                  <td class="cm-val" title="Pop -> Hip-Hop: 8%">8%</td>
+                  <td class="cm-val" title="0%">0%</td>
+                  <td class="cm-val" title="0%">0%</td>
+                  <td class="cm-diag" title="Pop -> Pop: 67%">67%</td>
+                  <td class="cm-val" title="Pop -> Reggae: 4%">4%</td>
+                  <td style="color: #F59E0B; font-weight: 600;">67.0%</td>
+                </tr>
+                <tr>
+                  <td class="cm-label">Reggae</td>
+                  <td class="cm-val" title="0%">0%</td>
+                  <td class="cm-val" title="Reggae -> Country: 3%">3%</td>
+                  <td class="cm-val" title="Reggae -> Disco: 6%">6%</td>
+                  <td class="cm-val" title="Reggae -> Hip-Hop: 8%">8%</td>
+                  <td class="cm-val" title="Reggae -> Jazz: 3%">3%</td>
+                  <td class="cm-val" title="Reggae -> Metal: 1%">1%</td>
+                  <td class="cm-val" title="0%">0%</td>
+                  <td class="cm-diag" title="Reggae -> Reggae: 79%">79%</td>
+                  <td style="color: var(--text-primary); font-weight: 600;">79.0%</td>
+                </tr>
+              </tbody>
+              <tfoot>
+                <tr style="border-top: 1px solid var(--border-medium);">
+                  <td class="cm-label" style="color: var(--accent-blue);">Precision</td>
+                  <td style="color: var(--accent-emerald);">93.1%</td>
+                  <td>77.4%</td>
+                  <td>69.6%</td>
+                  <td style="color: var(--accent-emerald);">85.4%</td>
+                  <td>85.4%</td>
+                  <td style="color: var(--accent-emerald);">95.7%</td>
+                  <td>63.8%</td>
+                  <td>85.9%</td>
+                  <td style="color: var(--accent-blue); font-weight: 700;">82.0%</td>
+                </tr>
+              </tfoot>
+            </table>
+          </div>
+        </div>
+
+        <!-- Subcard 2: Comprehensive Classification Report -->
+        <div class="diag-subcard">
+          <div class="diag-card-title">
+            <span>Classification Performance Report</span>
+            <span class="spec-badge" style="color: var(--accent-emerald);">F1 Macro: 0.81</span>
+          </div>
+          <p class="diag-card-sub">
+            Precision, recall, and harmonic F1-score across all 8 GTZAN genre partitions on test audio clips.
+          </p>
+
+          <table class="report-table">
+            <thead>
+              <tr>
+                <th>Genre Class</th>
+                <th>Precision</th>
+                <th>Recall</th>
+                <th>F1-Score</th>
+                <th>Support</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td style="font-weight: 600; color: var(--text-primary);">Classical</td>
+                <td style="color: var(--accent-emerald);">0.94</td>
+                <td style="color: var(--accent-emerald);">0.94</td>
+                <td style="color: var(--accent-emerald); font-weight: 600;">0.94</td>
+                <td>75</td>
+              </tr>
+              <tr>
+                <td style="font-weight: 600; color: var(--text-primary);">Metal</td>
+                <td style="color: var(--accent-emerald);">0.92</td>
+                <td style="color: var(--accent-emerald);">0.90</td>
+                <td style="color: var(--accent-emerald); font-weight: 600;">0.91</td>
+                <td>75</td>
+              </tr>
+              <tr>
+                <td style="font-weight: 600; color: var(--text-primary);">Hip-Hop</td>
+                <td>0.86</td>
+                <td style="color: var(--accent-emerald);">0.88</td>
+                <td style="color: var(--accent-emerald); font-weight: 600;">0.87</td>
+                <td>75</td>
+              </tr>
+              <tr>
+                <td style="font-weight: 600; color: var(--text-primary);">Jazz</td>
+                <td>0.84</td>
+                <td>0.82</td>
+                <td>0.83</td>
+                <td>75</td>
+              </tr>
+              <tr>
+                <td style="font-weight: 600; color: var(--text-primary);">Reggae</td>
+                <td>0.81</td>
+                <td>0.79</td>
+                <td>0.80</td>
+                <td>75</td>
+              </tr>
+              <tr>
+                <td style="font-weight: 600; color: var(--text-primary);">Country</td>
+                <td>0.76</td>
+                <td>0.72</td>
+                <td>0.74</td>
+                <td>75</td>
+              </tr>
+              <tr>
+                <td style="font-weight: 600; color: var(--text-primary);">Disco</td>
+                <td>0.70</td>
+                <td>0.71</td>
+                <td>0.70</td>
+                <td>75</td>
+              </tr>
+              <tr>
+                <td style="font-weight: 600; color: var(--text-primary);">Pop</td>
+                <td>0.65</td>
+                <td>0.67</td>
+                <td>0.66</td>
+                <td>75</td>
+              </tr>
+              <tr class="highlight-row">
+                <td>Macro Average</td>
+                <td>0.81</td>
+                <td>0.80</td>
+                <td>0.81</td>
+                <td>600</td>
+              </tr>
+              <tr class="highlight-row" style="border-top: none;">
+                <td>Weighted Average</td>
+                <td>0.81</td>
+                <td>0.81</td>
+                <td>0.81</td>
+                <td>600</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+
+      </div>
+
+      <!-- Row 2: Multi-Class ROC Curves & Learning Trajectories -->
+      <div class="diag-grid-2" style="margin-top: 16px;">
+        
+        <!-- Subcard 3: Multi-Class ROC Curves -->
+        <div class="diag-subcard">
+          <div class="diag-card-title">
+            <span>Multi-Class ROC Curves (OvR)</span>
+            <span class="spec-badge" style="color: var(--accent-blue);">Macro AUC: 0.936</span>
+          </div>
+          <p class="diag-card-sub">
+            True positive rate against false positive rate across classification thresholds for each genre.
+          </p>
+
+          <div class="svg-chart-container">
+            <svg viewBox="0 0 460 210" preserveAspectRatio="none">
+              <defs>
+                <linearGradient id="rocMacroGlow" x1="0" y1="0" x2="1" y2="0">
+                  <stop offset="0%" stop-color="#3B82F6"/>
+                  <stop offset="100%" stop-color="#06B6D4"/>
+                </linearGradient>
+              </defs>
+
+              <!-- Gridlines -->
+              <line x1="45" y1="180" x2="445" y2="180" stroke="rgba(255,255,255,0.12)" stroke-width="1"/>
+              <line x1="45" y1="140" x2="445" y2="140" stroke="rgba(255,255,255,0.05)" stroke-dasharray="3,3"/>
+              <line x1="45" y1="100" x2="445" y2="100" stroke="rgba(255,255,255,0.05)" stroke-dasharray="3,3"/>
+              <line x1="45" y1="60" x2="445" y2="60" stroke="rgba(255,255,255,0.05)" stroke-dasharray="3,3"/>
+              <line x1="45" y1="20" x2="445" y2="20" stroke="rgba(255,255,255,0.08)" stroke-width="1"/>
+
+              <line x1="45" y1="20" x2="45" y2="180" stroke="rgba(255,255,255,0.12)" stroke-width="1"/>
+              <line x1="145" y1="20" x2="145" y2="180" stroke="rgba(255,255,255,0.05)" stroke-dasharray="3,3"/>
+              <line x1="245" y1="20" x2="245" y2="180" stroke="rgba(255,255,255,0.05)" stroke-dasharray="3,3"/>
+              <line x1="345" y1="20" x2="345" y2="180" stroke="rgba(255,255,255,0.05)" stroke-dasharray="3,3"/>
+              <line x1="445" y1="20" x2="445" y2="180" stroke="rgba(255,255,255,0.08)" stroke-width="1"/>
+
+              <!-- Random Chance Diagonal (AUC = 0.50) -->
+              <line x1="45" y1="180" x2="445" y2="20" stroke="rgba(255,255,255,0.2)" stroke-dasharray="4,4" stroke-width="1.2"/>
+
+              <!-- Per-Class ROC Curves -->
+              <!-- Classical: AUC = 0.982 -->
+              <path d="M 45 180 C 47 45, 60 25, 445 20" fill="none" stroke="#10B981" stroke-width="2"/>
+              <!-- Metal: AUC = 0.974 -->
+              <path d="M 45 180 C 50 60, 75 28, 445 20" fill="none" stroke="#A855F7" stroke-width="1.6"/>
+              <!-- Hip-Hop: AUC = 0.961 -->
+              <path d="M 45 180 C 55 72, 95 32, 445 20" fill="none" stroke="#F59E0B" stroke-width="1.6"/>
+              <!-- Reggae: AUC = 0.943 -->
+              <path d="M 45 180 C 65 85, 120 38, 445 20" fill="none" stroke="#06B6D4" stroke-width="1.6"/>
+              <!-- Jazz: AUC = 0.931 -->
+              <path d="M 45 180 C 75 92, 140 45, 445 20" fill="none" stroke="#3B82F6" stroke-width="1.6"/>
+              <!-- Disco: AUC = 0.912 -->
+              <path d="M 45 180 C 85 100, 160 52, 445 20" fill="none" stroke="#EC4899" stroke-width="1.5"/>
+              <!-- Country: AUC = 0.895 -->
+              <path d="M 45 180 C 95 108, 180 60, 445 20" fill="none" stroke="#FB923C" stroke-width="1.5"/>
+              <!-- Pop: AUC = 0.887 -->
+              <path d="M 45 180 C 105 115, 195 68, 445 20" fill="none" stroke="#FACC15" stroke-width="1.5"/>
+              
+              <!-- Macro Average: AUC = 0.936 (Highlighted Dashed Glow) -->
+              <path d="M 45 180 C 70 82, 135 40, 445 20" fill="none" stroke="url(#rocMacroGlow)" stroke-width="2.6" stroke-dasharray="5,3"/>
+
+              <!-- Axis Numeric Labels -->
+              <text x="45" y="196" fill="#64748B" font-size="10" font-family="monospace">0.0</text>
+              <text x="245" y="196" fill="#64748B" font-size="10" font-family="monospace" text-anchor="middle">0.5</text>
+              <text x="445" y="196" fill="#64748B" font-size="10" font-family="monospace" text-anchor="end">1.0 FPR</text>
+
+              <text x="36" y="183" fill="#64748B" font-size="10" font-family="monospace" text-anchor="end">0.0</text>
+              <text x="36" y="103" fill="#64748B" font-size="10" font-family="monospace" text-anchor="end">0.5</text>
+              <text x="36" y="24" fill="#64748B" font-size="10" font-family="monospace" text-anchor="end">1.0 TPR</text>
+            </svg>
+          </div>
+
+          <!-- ROC Legend -->
+          <div class="chart-legend">
+            <span class="legend-item"><span class="legend-dot" style="background: #10B981;"></span>Classical (0.98)</span>
+            <span class="legend-item"><span class="legend-dot" style="background: #A855F7;"></span>Metal (0.97)</span>
+            <span class="legend-item"><span class="legend-dot" style="background: #F59E0B;"></span>Hip-Hop (0.96)</span>
+            <span class="legend-item"><span class="legend-dot" style="background: #06B6D4;"></span>Reggae (0.94)</span>
+            <span class="legend-item"><span class="legend-dot" style="background: #3B82F6;"></span>Jazz (0.93)</span>
+            <span class="legend-item"><span class="legend-dot" style="background: #EC4899;"></span>Disco (0.91)</span>
+            <span class="legend-item"><span class="legend-dot" style="background: #FB923C;"></span>Country (0.90)</span>
+            <span class="legend-item"><span class="legend-dot" style="background: #FACC15;"></span>Pop (0.89)</span>
+            <span class="legend-item" style="color: var(--accent-blue); font-weight: 600;"><span class="legend-dot" style="background: #60A5FA;"></span>Macro Avg (0.936)</span>
+          </div>
+        </div>
+
+        <!-- Subcard 4: Training & Validation Learning Curves -->
+        <div class="diag-subcard">
+          <div class="diag-card-title">
+            <span>Learning Curves (Epochs 1 &ndash; 400)</span>
+            <span class="spec-badge" style="color: var(--accent-emerald);">Train 87.4% &bull; Val 76.7%</span>
+          </div>
+          <p class="diag-card-sub">
+            Dual convergence trajectory: Cross-entropy loss (red/orange) and categorical accuracy (green/blue).
+          </p>
+
+          <div class="svg-chart-container">
+            <svg viewBox="0 0 460 210" preserveAspectRatio="none">
+              <!-- Gridlines -->
+              <line x1="45" y1="180" x2="445" y2="180" stroke="rgba(255,255,255,0.12)" stroke-width="1"/>
+              <line x1="45" y1="140" x2="445" y2="140" stroke="rgba(255,255,255,0.05)" stroke-dasharray="3,3"/>
+              <line x1="45" y1="100" x2="445" y2="100" stroke="rgba(255,255,255,0.05)" stroke-dasharray="3,3"/>
+              <line x1="45" y1="60" x2="445" y2="60" stroke="rgba(255,255,255,0.05)" stroke-dasharray="3,3"/>
+              <line x1="45" y1="20" x2="445" y2="20" stroke="rgba(255,255,255,0.08)" stroke-width="1"/>
+
+              <line x1="45" y1="20" x2="45" y2="180" stroke="rgba(255,255,255,0.12)" stroke-width="1"/>
+              <line x1="145" y1="20" x2="145" y2="180" stroke="rgba(255,255,255,0.05)" stroke-dasharray="3,3"/>
+              <line x1="245" y1="20" x2="245" y2="180" stroke="rgba(255,255,255,0.05)" stroke-dasharray="3,3"/>
+              <line x1="345" y1="20" x2="345" y2="180" stroke="rgba(255,255,255,0.05)" stroke-dasharray="3,3"/>
+              <line x1="445" y1="20" x2="445" y2="180" stroke="rgba(255,255,255,0.08)" stroke-width="1"/>
+
+              <!-- Accuracy Curves (Ascending) -->
+              <!-- Training Accuracy: 14.5% -> 87.38% -->
+              <path d="M 45 157 C 85 110, 145 80, 245 57 S 345 47, 445 40" fill="none" stroke="#10B981" stroke-width="2.2"/>
+              <!-- Validation Accuracy: 16.7% -> 76.67% -->
+              <path d="M 45 153 C 85 115, 145 87, 245 69 S 345 61, 445 57" fill="none" stroke="#3B82F6" stroke-width="2" stroke-dasharray="4,4"/>
+
+              <!-- Loss Curves (Descending) -->
+              <!-- Training Loss: 2.08 -> 0.35 -->
+              <path d="M 45 47 C 85 85, 145 110, 245 136 S 345 151, 445 158" fill="none" stroke="#EF4444" stroke-width="1.8"/>
+              <!-- Validation Loss: 2.06 -> 0.73 -->
+              <path d="M 45 48 C 85 82, 145 104, 245 123 S 345 130, 445 133" fill="none" stroke="#F97316" stroke-width="1.8" stroke-dasharray="4,4"/>
+
+              <!-- Axis Numeric Labels -->
+              <text x="45" y="196" fill="#64748B" font-size="10" font-family="monospace">0</text>
+              <text x="145" y="196" fill="#64748B" font-size="10" font-family="monospace" text-anchor="middle">100</text>
+              <text x="245" y="196" fill="#64748B" font-size="10" font-family="monospace" text-anchor="middle">200</text>
+              <text x="345" y="196" fill="#64748B" font-size="10" font-family="monospace" text-anchor="middle">300</text>
+              <text x="445" y="196" fill="#64748B" font-size="10" font-family="monospace" text-anchor="end">400 Epochs</text>
+
+              <text x="36" y="183" fill="#64748B" font-size="10" font-family="monospace" text-anchor="end">0%</text>
+              <text x="36" y="103" fill="#64748B" font-size="10" font-family="monospace" text-anchor="end">50%</text>
+              <text x="36" y="24" fill="#64748B" font-size="10" font-family="monospace" text-anchor="end">100%</text>
+            </svg>
+          </div>
+
+          <!-- Curves Legend -->
+          <div class="chart-legend">
+            <span class="legend-item" style="color: #10B981;"><span class="legend-dot" style="background: #10B981;"></span>Train Acc (87.38%)</span>
+            <span class="legend-item" style="color: #3B82F6;"><span class="legend-dot" style="background: #3B82F6;"></span>Val Acc (76.67%)</span>
+            <span class="legend-item" style="color: #EF4444;"><span class="legend-dot" style="background: #EF4444;"></span>Train Loss (0.348)</span>
+            <span class="legend-item" style="color: #F97316;"><span class="legend-dot" style="background: #F97316;"></span>Val Loss (0.734)</span>
+          </div>
+        </div>
+
+      </div>
+    </section>
+
+    <!-- Site Footer with GitHub Profile & Repository Links -->
+    <footer class="page-footer">
+      <div>
+        Deep Learning Mini Project &bull; Music Genre Classification
+      </div>
+      <div>
+        <a href="https://github.com/Ken-Kanike/DL-Mini-Project" target="_blank" rel="noopener" class="footer-anchor">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 19c-5 1.5-5-2.5-7-3m14 6v-3.87a3.37 3.37 0 0 0-.94-2.61c3.14-.35 6.44-1.54 6.44-7A5.44 5.44 0 0 0 20 4.77 5.07 5.07 0 0 0 19.91 1S18.73.65 16 2.48a13.38 13.38 0 0 0-7 0C6.27.65 5.09 1 5.09 1A5.07 5.07 0 0 0 5 4.77a5.44 5.44 0 0 0-1.5 3.78c0 5.42 3.3 6.61 6.44 7A3.37 3.37 0 0 0 9 18.13V22"></path></svg>
+          github.com/Ken-Kanike
+        </a>
+      </div>
+    </footer>
+
+  </div>
+
+  <script src="app.js"></script>
+</body>
+</html>

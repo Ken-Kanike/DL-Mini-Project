@@ -5,8 +5,10 @@ import tempfile
 import logging
 import numpy as np
 import librosa
+import json
 from flask import Flask, request, jsonify, send_from_directory
 from flask_cors import CORS
+from flask_sock import Sock
 
 # Suppress TensorFlow verbose logging
 os.environ["TF_CPP_MIN_LOG_LEVEL"] = "2"
@@ -25,6 +27,36 @@ GENRES = ["classical", "country", "disco", "hiphop", "jazz", "metal", "pop", "re
 
 app = Flask(__name__, static_folder=BASE_DIR)
 CORS(app)
+sock = Sock(app)
+
+# Real-time WebSocket Health & Telemetry Channel
+@sock.route("/ws/health")
+def ws_health(ws):
+    logging.info("WebSocket client connected to /ws/health.")
+    try:
+        init_payload = {
+            "type": "connected",
+            "online": True,
+            "model_ready": model is not None,
+            "model_architecture": "Stacked 2-Layer LSTM",
+            "total_parameters": 103816,
+            "timestamp": time.time(),
+            "genres": GENRES
+        }
+        ws.send(json.dumps(init_payload))
+        while True:
+            msg = ws.receive(timeout=15)
+            ack = {
+                "type": "heartbeat_ack",
+                "online": True,
+                "model_ready": model is not None,
+                "timestamp": time.time()
+            }
+            ws.send(json.dumps(ack))
+    except Exception:
+        pass
+    finally:
+        logging.info("WebSocket client disconnected from /ws/health.")
 
 # Global model instance
 model = None
