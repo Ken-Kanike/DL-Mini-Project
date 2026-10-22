@@ -140,7 +140,7 @@ The deep learning model is built using a stacked 2-layer Recurrent Neural Networ
 To demonstrate the working model to the teacher or test custom audio files, open a terminal in the project directory:
 
 ```bash
-cd "c:\Users\junai\Desktop\DL Mini Project\LSTM-Music-Genre-Classification-master"
+cd LSTM-Music-Genre-Classification-master
 ```
 
 ### Run Genre Prediction:
