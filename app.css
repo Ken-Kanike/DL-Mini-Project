@@ -31,6 +31,14 @@
   box-sizing: border-box;
 }
 
+html, body {
+  width: 100%;
+  max-width: 100%;
+  overflow-x: hidden;
+  margin: 0;
+  padding: 0;
+}
+
 body {
   background-color: var(--bg-black);
   background-image: 
@@ -211,14 +219,17 @@ body {
 
 .svg-chart-container {
   width: 100%;
+  max-width: 100%;
   height: 210px;
   position: relative;
+  overflow: hidden;
 }
 
 .svg-chart-container svg {
   width: 100%;
+  max-width: 100%;
   height: 100%;
-  overflow: visible;
+  display: block;
 }
 
 .chart-legend {
@@ -243,3 +254,147 @@ body {
   display: inline-block;
   flex-shrink: 0;
 }
+
+/* ========================================================
+   Comprehensive Responsive Media Queries
+   (Mobile, Phablet, Tablet, Laptop)
+   ======================================================== */
+
+@media (max-width: 960px) {
+  .main-grid {
+    grid-template-columns: 1fr !important;
+    gap: 20px;
+  }
+  .arch-container {
+    grid-template-columns: 1fr;
+    gap: 12px;
+  }
+  .diag-grid-2 {
+    grid-template-columns: 1fr;
+    gap: 16px;
+  }
+}
+
+@media (max-width: 768px) {
+  .container {
+    padding: 24px 16px 48px;
+  }
+  .hero-title {
+    font-size: 2.1rem;
+  }
+  .hero-subtitle {
+    font-size: 0.95rem;
+  }
+  .top-nav {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 10px;
+  }
+  .sys-specs {
+    width: 100%;
+  }
+  .card-panel {
+    padding: 18px 16px;
+  }
+  .verdict-title-text {
+    font-size: 1.9rem;
+  }
+}
+
+@media (max-width: 580px) {
+  .container {
+    padding: 16px 12px 36px;
+  }
+  .hero-title {
+    font-size: 1.7rem;
+  }
+  .hero-subtitle {
+    font-size: 0.86rem;
+  }
+  .brand-pill {
+    font-size: 0.76rem;
+    padding: 5px 10px;
+  }
+  .spec-badge {
+    font-size: 0.7rem;
+    padding: 3px 8px;
+  }
+  .genre-grid {
+    grid-template-columns: repeat(2, 1fr) !important;
+    gap: 6px;
+  }
+  .metrics-grid {
+    grid-template-columns: repeat(2, 1fr) !important;
+    gap: 6px;
+  }
+  .upload-zone {
+    padding: 12px;
+    gap: 10px;
+  }
+  .upload-text {
+    font-size: 0.76rem;
+  }
+  .upload-hint {
+    font-size: 0.68rem;
+  }
+  .audio-console {
+    padding: 12px;
+  }
+  .audio-controls-row {
+    gap: 8px;
+  }
+  .play-btn {
+    width: 34px;
+    height: 34px;
+  }
+  .audio-buffer-loader {
+    padding: 3px 6px;
+    font-size: 0.65rem;
+  }
+  .verdict-title-text {
+    font-size: 1.6rem;
+  }
+  .action-btn {
+    padding: 11px 16px;
+    font-size: 0.86rem;
+  }
+  .svg-chart-container {
+    height: 180px;
+  }
+  .chart-legend {
+    font-size: 0.64rem;
+    gap: 4px 8px;
+  }
+  .page-footer {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 8px;
+  }
+}
+
+@media (max-width: 380px) {
+  .container {
+    padding: 12px 8px 30px;
+  }
+  .hero-title {
+    font-size: 1.45rem;
+  }
+  .card-panel {
+    padding: 14px 10px;
+  }
+  .genre-btn {
+    padding: 8px 4px;
+    font-size: 0.72rem;
+  }
+  .metric-value {
+    font-size: 0.88rem;
+  }
+  .metric-label {
+    font-size: 0.62rem;
+  }
+  .track-title {
+    max-width: 55%;
+    font-size: 0.78rem;
+  }
+}
+

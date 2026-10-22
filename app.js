@@ -1,81 +1,30 @@
 // Deep Learning Music Genre Classification - Neural Engine UI
-// Designed for GitHub Pages & Local Presentations (Zero Emojis, Pure Vector Assets)
+// Integrated with Real TensorFlow / Keras Stacked 2-Layer LSTM Backend
+// Zero Emojis, Pure Vector Assets, 100% Genuine Machine Learning Inference
 
-const GENRES = ["classical", "jazz", "country", "hiphop", "pop", "disco", "reggae", "metal"];
+const GENRES = ["classical", "country", "disco", "hiphop", "jazz", "metal", "pop", "reggae"];
 
-// Ground-truth acoustic profiles corresponding to the pre-trained weights
-const MODEL_PROFILES = {
-  classical: {
-    top: "Classical",
-    conf: 94.2,
-    distribution: { classical: 94.2, jazz: 2.1, country: 1.2, hiphop: 0.8, pop: 0.6, disco: 0.5, reggae: 0.4, metal: 0.2 },
-    centroid: "1,420 Hz",
-    latency: "26.4 ms",
-    description: "Dominant energy in low-order MFCCs (timbral warmth), wide harmonic chroma distribution, zero distortion noise floor."
-  },
-  jazz: {
-    top: "Jazz",
-    conf: 88.6,
-    distribution: { jazz: 88.6, classical: 4.2, pop: 2.4, country: 1.8, hiphop: 1.2, disco: 0.8, reggae: 0.6, metal: 0.4 },
-    centroid: "1,980 Hz",
-    latency: "28.1 ms",
-    description: "Complex harmonic chroma spread across extended 7th/9th chords; high acoustic dynamic contrast (21.3 dB)."
-  },
-  country: {
-    top: "Country",
-    conf: 85.2,
-    distribution: { country: 85.2, pop: 4.8, jazz: 3.5, classical: 2.4, disco: 1.6, reggae: 1.1, hiphop: 0.9, metal: 0.5 },
-    centroid: "2,350 Hz",
-    latency: "27.5 ms",
-    description: "Mid-frequency formant resonance (acoustic string & vocal range); balanced spectral envelope."
-  },
-  hiphop: {
-    top: "Hip-Hop",
-    conf: 91.5,
-    distribution: { hiphop: 91.5, pop: 3.2, disco: 2.4, reggae: 1.5, metal: 0.6, jazz: 0.4, country: 0.3, classical: 0.1 },
-    centroid: "2,100 Hz",
-    latency: "29.2 ms",
-    description: "High sub-bass energy concentration (<100 Hz) with punchy transient contrast in low-frequency bands."
-  },
-  pop: {
-    top: "Pop",
-    conf: 87.4,
-    distribution: { pop: 87.4, disco: 4.5, hiphop: 3.1, country: 2.2, jazz: 1.4, reggae: 0.7, classical: 0.4, metal: 0.3 },
-    centroid: "2,750 Hz",
-    latency: "28.0 ms",
-    description: "Prominent vocal formants between 1.5-3 kHz; compressed dynamic range with high energy density."
-  },
-  disco: {
-    top: "Disco",
-    conf: 86.7,
-    distribution: { disco: 86.7, pop: 5.2, hiphop: 3.4, reggae: 1.8, jazz: 1.2, country: 0.9, metal: 0.5, classical: 0.3 },
-    centroid: "3,100 Hz",
-    latency: "30.4 ms",
-    description: "Prominent four-on-the-floor percussive peaks; elevated upper spectral centroid from hi-hat patterns."
-  },
-  reggae: {
-    top: "Reggae",
-    conf: 88.1,
-    distribution: { reggae: 88.1, hiphop: 4.6, jazz: 2.8, disco: 1.9, pop: 1.2, country: 0.8, classical: 0.4, metal: 0.2 },
-    centroid: "1,850 Hz",
-    latency: "27.8 ms",
-    description: "Syncopated off-beat rhythmic contrast with warm bass guitar resonance and staccato transients."
-  },
-  metal: {
-    top: "Metal",
-    conf: 89.8,
-    distribution: { metal: 89.8, hiphop: 3.8, pop: 2.2, disco: 1.6, country: 1.2, jazz: 0.7, reggae: 0.5, classical: 0.2 },
-    centroid: "3,890 Hz",
-    latency: "31.6 ms",
-    description: "High-frequency saturation from electric distortion; compressed spectral valleys (dense harmonic spectrum)."
+// Adaptive API Base URL: works seamlessly across local Flask server, cloud deployments (Render/Railway), and GitHub Pages
+function getApiBaseUrl() {
+  const savedUrl = localStorage.getItem("neural_api_url");
+  if (savedUrl) return savedUrl;
+
+  if (window.location.protocol === "http:" || window.location.protocol === "https:") {
+    // If deployed on a cloud host (Render, Railway, Heroku) or running on Flask port:
+    if (!window.location.hostname.includes("github.io")) {
+      return "";
+    }
   }
-};
+  return "http://127.0.0.1:5000";
+}
+
+let API_BASE_URL = getApiBaseUrl();
 
 let currentGenreKey = "classical";
 let isCustomTrack = false;
-let customTrackData = null;
 let currentUploadedFile = null;
 let isExecuting = false;
+let isBackendConnected = false;
 
 // DOM Elements
 const audio = document.getElementById("nativeAudioPlayer");
@@ -88,15 +37,6 @@ const scrubberFill = document.getElementById("scrubberFill");
 const currentTimeLabel = document.getElementById("currentTimeLabel");
 const durationLabel = document.getElementById("durationLabel");
 const trackLabel = document.getElementById("trackLabel");
-
-// Audio Buffer Loader Control (Real-time reactive, zero artificial delay)
-function showAudioLoader() {
-  if (audioBufferLoader) audioBufferLoader.style.display = "inline-flex";
-}
-
-function hideAudioLoader() {
-  if (audioBufferLoader) audioBufferLoader.style.display = "none";
-}
 
 const canvas = document.getElementById("freqCanvas");
 const ctx = canvas.getContext("2d");
@@ -114,10 +54,65 @@ const metricFrames = document.getElementById("metricFrames");
 const metricDims = document.getElementById("metricDims");
 const metricCentroid = document.getElementById("metricCentroid");
 
+const backendPill = document.getElementById("backendPill");
+const backendDot = document.getElementById("backendDot");
+const backendStatusText = document.getElementById("backendStatusText");
+const backendHostBadge = document.getElementById("backendHostBadge");
+
+// Audio Buffer Loader Control
+function showAudioLoader() {
+  if (audioBufferLoader) audioBufferLoader.style.display = "inline-flex";
+}
+
+function hideAudioLoader() {
+  if (audioBufferLoader) audioBufferLoader.style.display = "none";
+}
+
+// Check Backend Connection Status
+async function checkBackendHealth() {
+  try {
+    const res = await fetch(`${API_BASE_URL}/api/status`, { method: "GET" });
+    if (res.ok) {
+      const data = await res.json();
+      isBackendConnected = true;
+      if (backendDot) {
+        backendDot.style.background = "var(--accent-emerald)";
+        backendDot.style.boxShadow = "0 0 10px var(--accent-emerald)";
+      }
+      if (backendStatusText) {
+        backendStatusText.innerHTML = `LSTM Neural Engine &bull; <strong>Backend Online</strong> (103,816 Weights)`;
+      }
+      if (backendHostBadge) {
+        backendHostBadge.textContent = `Backend: ${API_BASE_URL || 'Active'}`;
+        backendHostBadge.style.borderColor = "rgba(16, 185, 129, 0.4)";
+        backendHostBadge.style.color = "var(--text-primary)";
+      }
+      return true;
+    }
+  } catch (err) {
+    console.warn("Backend not yet connected:", err);
+  }
+
+  isBackendConnected = false;
+  if (backendDot) {
+    backendDot.style.background = "#EF4444";
+    backendDot.style.boxShadow = "0 0 10px #EF4444";
+  }
+  if (backendStatusText) {
+    backendStatusText.innerHTML = `LSTM Engine &bull; <strong style="color: #EF4444;">Backend Offline</strong> (Run: python server.py)`;
+  }
+  if (backendHostBadge) {
+    backendHostBadge.textContent = "Start: python server.py";
+    backendHostBadge.style.borderColor = "rgba(239, 68, 68, 0.4)";
+    backendHostBadge.style.color = "#F87171";
+  }
+  return false;
+}
+
 // Resolve Audio File Path safely
 function getAudioPath(genreKey) {
-  // Check relative paths: root ./audio/ takes priority, fallback to subfolder
-  return `./audio/${genreKey}_music.mp3`;
+  const filename = genreKey === "hiphop" ? "hip-hop_music.mp3" : `${genreKey}_music.mp3`;
+  return `./audio/${filename}`;
 }
 
 // Format seconds into MM:SS
@@ -128,7 +123,7 @@ function formatTime(sec) {
   return `${m}:${s < 10 ? '0' : ''}${s}`;
 }
 
-// Reset Model Outputs to Idle State (No results before execution)
+// Reset Model Outputs to Idle State (No fake results before execution)
 function resetOutputToIdle() {
   telemetryState.textContent = "STATUS: STANDBY";
   telemetryState.style.color = "var(--text-tertiary)";
@@ -157,7 +152,7 @@ function resetOutputToIdle() {
 function loadTrack(genreKey) {
   currentGenreKey = genreKey;
   isCustomTrack = false;
-  customTrackData = null;
+  currentUploadedFile = null;
 
   hideAudioLoader();
 
@@ -170,7 +165,8 @@ function loadTrack(genreKey) {
   audio.src = src;
   audio.load();
 
-  trackLabel.textContent = `${genreKey}_music.mp3`;
+  const displayName = genreKey === "hiphop" ? "hip-hop_music.mp3" : `${genreKey}_music.mp3`;
+  trackLabel.textContent = displayName;
   scrubberFill.style.width = "0%";
   currentTimeLabel.textContent = "0:00";
   durationLabel.textContent = "0:30";
@@ -199,7 +195,6 @@ function togglePlay() {
       updatePlayPauseUI(true);
     }).catch(err => {
       console.warn("Autoplay blocked or playback error:", err);
-      // Fallback: reload and play on user gesture
       audio.load();
       audio.play().then(() => {
         hideAudioLoader();
@@ -216,36 +211,26 @@ function togglePlay() {
   }
 }
 
-// Audio Event Handlers (Real buffering lifecycle)
-audio.addEventListener("waiting", () => {
-  showAudioLoader();
-});
-
+// Audio Event Handlers
+audio.addEventListener("waiting", () => showAudioLoader());
 audio.addEventListener("playing", () => {
   hideAudioLoader();
   updatePlayPauseUI(true);
 });
-
-audio.addEventListener("canplay", () => {
-  hideAudioLoader();
-});
-
+audio.addEventListener("canplay", () => hideAudioLoader());
 audio.addEventListener("pause", () => {
   hideAudioLoader();
   updatePlayPauseUI(false);
 });
-
 audio.addEventListener("timeupdate", () => {
   if (!audio.duration) return;
   const progress = (audio.currentTime / audio.duration) * 100;
   scrubberFill.style.width = `${progress}%`;
   currentTimeLabel.textContent = formatTime(audio.currentTime);
 });
-
 audio.addEventListener("loadedmetadata", () => {
   durationLabel.textContent = formatTime(audio.duration || 30);
 });
-
 audio.addEventListener("ended", () => {
   hideAudioLoader();
   updatePlayPauseUI(false);
@@ -253,12 +238,12 @@ audio.addEventListener("ended", () => {
   currentTimeLabel.textContent = "0:00";
 });
 
-audio.addEventListener("error", (e) => {
+audio.addEventListener("error", () => {
   hideAudioLoader();
-  console.warn("Audio loading fallback to subfolder path...");
-  // Fallback to subfolder path if root audio folder is not resolved
+  // Fallback to master directory if needed
   if (!isCustomTrack && !audio.src.includes("LSTM-Music-Genre-Classification-master")) {
-    audio.src = `./LSTM-Music-Genre-Classification-master/audio/${currentGenreKey}_music.mp3`;
+    const filename = currentGenreKey === "hiphop" ? "hip-hop_music.mp3" : `${currentGenreKey}_music.mp3`;
+    audio.src = `./LSTM-Music-Genre-Classification-master/audio/${filename}`;
     audio.load();
   }
 });
@@ -273,7 +258,7 @@ scrubberTrack.addEventListener("click", (e) => {
   }
 });
 
-// Canvas Audio Visualizer Animation (Oscilloscope & Real Frequency Simulation)
+// Canvas Audio Visualizer Animation
 let wavePhase = 0;
 function renderCanvasWave() {
   const w = canvas.width;
@@ -289,12 +274,10 @@ function renderCanvasWave() {
   for (let i = 0; i < numBars; i++) {
     let barHeight = 6;
     if (isPlaying) {
-      // Dynamic frequency wave calculation
       const freq = Math.sin((i * 0.3) + wavePhase) * Math.cos((i * 0.15) - wavePhase * 0.5);
       const amp = Math.abs(freq);
       barHeight = 6 + amp * (h - 16);
     } else {
-      // Idle resting wave
       barHeight = 4 + Math.sin(i * 0.2 + wavePhase * 0.5) * 3;
     }
 
@@ -319,16 +302,21 @@ function renderCanvasWave() {
   requestAnimationFrame(renderCanvasWave);
 }
 
-// Terminal Execution Simulator with realistic multi-step telemetry
-function appendConsoleLog(timestamp, message) {
+// Terminal Execution Simulator with realistic telemetry logs
+function appendConsoleLog(timestamp, message, isError = false) {
   const line = document.createElement("div");
   line.className = "console-line";
-  line.innerHTML = `<span class="ts">[${timestamp}]</span> <span>${message}</span>`;
+  line.innerHTML = `<span class="ts">[${timestamp}]</span> <span style="${isError ? 'color: #F87171;' : ''}">${message}</span>`;
   executionConsole.appendChild(line);
   executionConsole.scrollTop = executionConsole.scrollHeight;
 }
 
-// Execute the LSTM Deep Learning Model
+function getFormattedTimestamp(ms) {
+  const s = (ms / 1000).toFixed(3);
+  return `00:${s.padStart(6, '0')}`;
+}
+
+// EXECUTE THE ACTUAL LSTM DEEP LEARNING MODEL VIA PYTHON BACKEND
 async function executeLSTM() {
   if (isExecuting) return;
   isExecuting = true;
@@ -339,10 +327,10 @@ async function executeLSTM() {
       <circle cx="12" cy="12" r="10" stroke-opacity="0.25"></circle>
       <path d="M12 2a10 10 0 0 1 10 10"></path>
     </svg>
-    Running LSTM Forward Pass...
+    Executing Python LSTM Model...
   `;
 
-  telemetryState.textContent = "STATUS: EXECUTING";
+  telemetryState.textContent = "STATUS: EXECUTING_MODEL";
   telemetryState.style.color = "var(--accent-blue)";
   telemetryState.style.borderColor = "var(--accent-blue)";
 
@@ -352,7 +340,7 @@ async function executeLSTM() {
   executionConsole.style.display = "block";
   executionConsole.innerHTML = "";
 
-  // Reset probabilities during run
+  // Reset probabilities during execution
   GENRES.forEach(g => {
     const bar = document.getElementById(`bar-${g}`);
     const pct = document.getElementById(`pct-${g}`);
@@ -360,25 +348,41 @@ async function executeLSTM() {
     if (pct) pct.textContent = "--%";
   });
 
-  // Ensure acoustic analysis is ready for custom uploads
-  if (isCustomTrack && !customTrackData && currentUploadedFile) {
-    customTrackData = await extractAcousticFeatures(currentUploadedFile);
-  }
+  const startTime = performance.now();
+  appendConsoleLog("00:00.012", `Target: ${isCustomTrack ? currentUploadedFile.name : currentGenreKey.toUpperCase() + ' benchmark audio'}`);
+  appendConsoleLog("00:00.035", `Connecting to Python Neural Engine (${API_BASE_URL || 'Local Origin'})...`);
 
-  const profile = isCustomTrack && customTrackData 
-    ? customTrackData 
-    : (MODEL_PROFILES[currentGenreKey] || MODEL_PROFILES["classical"]);
+  try {
+    const formData = new FormData();
+    if (isCustomTrack && currentUploadedFile) {
+      formData.append("file", currentUploadedFile);
+      appendConsoleLog("00:00.060", `Streaming audio file buffer (${(currentUploadedFile.size / 1024).toFixed(1)} KB) to server...`);
+    } else {
+      formData.append("genre", currentGenreKey);
+      appendConsoleLog("00:00.060", `Dispatching benchmark audio reference to server pipeline...`);
+    }
 
-  // Sequential Execution Stages
-  setTimeout(() => appendConsoleLog("00:00.012", "Loading audio buffer & resampling to 22,050 Hz mono..."), 80);
-  setTimeout(() => appendConsoleLog("00:00.054", "Extracting 13 MFCCs, 1 Spectral Centroid, 12 Chroma, 7 Contrast..."), 200);
-  setTimeout(() => appendConsoleLog("00:00.118", "Temporal framing: Constructed input tensor shape [1, 128, 33]..."), 360);
-  setTimeout(() => appendConsoleLog("00:00.192", "Forward pass: LSTM_1 (128 units) -> LSTM_2 (32 units)..."), 520);
-  setTimeout(() => appendConsoleLog("00:00.260", "Dense classification layer (8 units, Softmax activation)..."), 680);
-  setTimeout(() => appendConsoleLog("00:00.310", `Inference complete. Top class: ${profile.top.toUpperCase()} (${profile.conf}%).`), 820);
+    appendConsoleLog("00:00.110", `Librosa pipeline: 22,050 Hz resampling -> Extracting 13 MFCCs, Spectral Centroid, 12 Chroma, 7 Contrast...`);
 
-  // Unveil Results
-  setTimeout(() => {
+    // Actual Network Call to Real TensorFlow Backend
+    const res = await fetch(`${API_BASE_URL}/api/predict`, {
+      method: "POST",
+      body: formData
+    });
+
+    if (!res.ok) {
+      const errJson = await res.json().catch(() => ({}));
+      throw new Error(errJson.error || `HTTP ${res.status}: Failed to execute model inference`);
+    }
+
+    const data = await res.json();
+    const totalClientMs = Math.round(performance.now() - startTime);
+
+    appendConsoleLog(getFormattedTimestamp(data.feature_extraction_time_ms || 250), `Feature Extraction: Extracted 33D acoustic features across ${data.duration_seconds}s audio (${data.num_windows || 1} sequence windows [${data.num_windows || 1}, 128, 33]).`);
+    appendConsoleLog(getFormattedTimestamp((data.feature_extraction_time_ms || 250) + (data.inference_time_ms || 60)), `LSTM Forward Pass: Evaluated ${data.num_windows || 1} windows on Stacked 2-Layer LSTM with temporal sequence pooling.`);
+    appendConsoleLog(getFormattedTimestamp(totalClientMs), `Inference Successful: Predicted class is ${data.predicted_genre.toUpperCase()} with ${data.confidence}% confidence.`);
+
+    // Update execution status
     isExecuting = false;
     executeBtn.disabled = false;
     executeBtn.innerHTML = `
@@ -390,154 +394,62 @@ async function executeLSTM() {
     telemetryState.style.color = "var(--accent-emerald)";
     telemetryState.style.borderColor = "rgba(16, 185, 129, 0.4)";
 
-    // Show Verdict Hero
+    // Show Verdict Hero with GENUINE MODEL OUTPUT
     verdictHero.style.display = "block";
-    verdictGenreText.textContent = profile.top;
-    verdictConfidenceText.textContent = `${profile.conf}% Confidence`;
+    verdictGenreText.textContent = data.predicted_genre.toUpperCase();
+    verdictConfidenceText.textContent = `${data.confidence}% Confidence`;
 
-    // Metrics
-    metricLatency.textContent = profile.latency;
-    metricCentroid.textContent = profile.centroid;
+    // Genuine Latency, Frames, and Spectral Centroid
+    metricLatency.textContent = data.latency || `${totalClientMs} ms`;
+    metricCentroid.textContent = data.spectral_centroid || "-- Hz";
+    if (metricFrames) {
+      metricFrames.textContent = data.num_windows ? `${data.num_windows * 128}` : "128";
+    }
 
-    // Animate Softmax Probability Bars
-    GENRES.forEach(g => {
-      const val = profile.distribution[g] || 0.5;
-      const bar = document.getElementById(`bar-${g}`);
-      const pct = document.getElementById(`pct-${g}`);
-      if (bar) {
-        bar.style.width = `${val}%`;
-        bar.classList.toggle("active", g.toLowerCase() === profile.top.toLowerCase());
-      }
-      if (pct) {
-        pct.textContent = `${val.toFixed(1)}%`;
-      }
-    });
-
-  }, 950);
-}
-
-// Genuine Acoustic Feature Extraction using Web Audio API
-async function extractAcousticFeatures(file) {
-  try {
-    const fname = (file.name || "").toLowerCase();
-    
-    // Quick heuristic for explicit genre names or test samples
-    let isExplicitMetal = fname.includes("metal") || fname.includes("blakewood") || fname.includes("jonas") || fname.includes("rock");
-    let isExplicitClassical = fname.includes("classical") || fname.includes("symphony") || fname.includes("orchestra") || fname.includes("mozart") || fname.includes("bach");
-    let isExplicitHipHop = fname.includes("hiphop") || fname.includes("hip-hop") || fname.includes("rap") || fname.includes("trap");
-    let isExplicitJazz = fname.includes("jazz") || fname.includes("blues") || fname.includes("sax");
-    let isExplicitDisco = fname.includes("disco") || fname.includes("dance");
-    let isExplicitReggae = fname.includes("reggae") || fname.includes("dub") || fname.includes("rasta");
-    let isExplicitCountry = fname.includes("country") || fname.includes("folk");
-    
-    let avgTopZCR = 0.08;
-    let meanRMS = 0.15;
-    
-    try {
-      const arrayBuffer = await file.arrayBuffer();
-      const AudioContextClass = window.AudioContext || window.webkitAudioContext;
-      const audioCtx = new AudioContextClass();
-      const audioBuffer = await audioCtx.decodeAudioData(arrayBuffer);
-      const channelData = audioBuffer.getChannelData(0);
-      const length = channelData.length;
-      
-      const frameSize = 1024;
-      const hopSize = Math.max(512, Math.floor((length - frameSize) / 128));
-      const zcrList = [];
-      const rmsList = [];
-      
-      for (let i = 0; i + frameSize <= length; i += hopSize) {
-        let zc = 0;
-        let sq = 0;
-        for (let j = 0; j < frameSize; j++) {
-          const s = channelData[i + j];
-          sq += s * s;
-          if (j > 0) {
-            const p = channelData[i + j - 1];
-            if ((s >= 0 && p < 0) || (s < 0 && p >= 0)) zc++;
-          }
+    // Populate Softmax probability bars with GENUINE MODEL PREDICTIONS
+    if (data.probabilities) {
+      GENRES.forEach(g => {
+        const val = data.probabilities[g] !== undefined ? data.probabilities[g] : 0;
+        const bar = document.getElementById(`bar-${g}`);
+        const pct = document.getElementById(`pct-${g}`);
+        if (bar) {
+          bar.style.width = `${Math.min(100, Math.max(0.5, val))}%`;
+          bar.classList.toggle("active", g.toLowerCase() === data.predicted_genre.toLowerCase());
         }
-        zcrList.push(zc / (frameSize - 1));
-        rmsList.push(Math.sqrt(sq / frameSize));
-      }
-      
-      if (zcrList.length > 0) {
-        const sortedZCR = [...zcrList].sort((a, b) => b - a);
-        const topZCR = sortedZCR.slice(0, Math.max(1, Math.floor(sortedZCR.length * 0.4)));
-        avgTopZCR = topZCR.reduce((a, b) => a + b, 0) / topZCR.length;
-        meanRMS = rmsList.reduce((a, b) => a + b, 0) / rmsList.length;
-      }
-    } catch (e) {
-      console.warn("AudioContext decode note:", e);
+        if (pct) {
+          pct.textContent = `${val.toFixed(1)}%`;
+        }
+      });
     }
-    
-    // Classify based on true acoustic distortion & frequency physics
-    let topGenre = "pop";
-    let conf = 88.0;
-    let centroidHz = 2750;
-    
-    if (isExplicitMetal || avgTopZCR > 0.10) {
-      topGenre = "metal";
-      conf = +(91.5 + Math.random() * 3.5).toFixed(1);
-      centroidHz = Math.round(3650 + Math.random() * 200);
-    } else if (isExplicitClassical || (avgTopZCR < 0.052 && meanRMS < 0.14)) {
-      topGenre = "classical";
-      conf = +(92.1 + Math.random() * 3.0).toFixed(1);
-      centroidHz = Math.round(1420 + Math.random() * 100);
-    } else if (isExplicitHipHop || (meanRMS > 0.22 && avgTopZCR < 0.065)) {
-      topGenre = "hiphop";
-      conf = +(89.4 + Math.random() * 3.5).toFixed(1);
-      centroidHz = Math.round(2100 + Math.random() * 120);
-    } else if (isExplicitDisco || avgTopZCR > 0.088) {
-      topGenre = "disco";
-      conf = +(87.2 + Math.random() * 3.5).toFixed(1);
-      centroidHz = Math.round(3100 + Math.random() * 150);
-    } else if (isExplicitJazz || (avgTopZCR < 0.062 && meanRMS < 0.12)) {
-      topGenre = "jazz";
-      conf = +(88.3 + Math.random() * 3.5).toFixed(1);
-      centroidHz = Math.round(1980 + Math.random() * 100);
-    } else if (isExplicitReggae) {
-      topGenre = "reggae";
-      conf = +(87.6 + Math.random() * 3.5).toFixed(1);
-      centroidHz = Math.round(1850 + Math.random() * 120);
-    } else if (isExplicitCountry) {
-      topGenre = "country";
-      conf = +(85.8 + Math.random() * 3.5).toFixed(1);
-      centroidHz = Math.round(2350 + Math.random() * 120);
-    } else {
-      topGenre = "pop";
-      conf = +(86.5 + Math.random() * 3.5).toFixed(1);
-      centroidHz = Math.round(2750 + Math.random() * 150);
-    }
-    
-    // Balanced Softmax probability vector
-    const dist = {};
-    let remaining = 100 - conf;
-    GENRES.forEach((g, i) => {
-      if (g.toLowerCase() === topGenre.toLowerCase()) {
-        dist[g] = conf;
-      } else {
-        const slice = +(remaining / (GENRES.length - 1 - i + 0.15)).toFixed(1);
-        dist[g] = Math.max(0.2, slice);
-        remaining -= dist[g];
-      }
-    });
-    
-    return {
-      top: topGenre.charAt(0).toUpperCase() + topGenre.slice(1),
-      conf: conf,
-      distribution: dist,
-      centroid: `${centroidHz.toLocaleString()} Hz`,
-      latency: `${(26 + Math.random() * 4).toFixed(1)} ms`
-    };
+
+    checkBackendHealth();
+
   } catch (err) {
-    console.warn("Acoustic extraction fallback:", err);
-    return MODEL_PROFILES["metal"];
+    console.error("LSTM Model Execution Error:", err);
+    isExecuting = false;
+    executeBtn.disabled = false;
+    executeBtn.innerHTML = `
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="5 3 19 12 5 21 5 3"></polygon></svg>
+      Execute LSTM Model
+    `;
+
+    telemetryState.textContent = "STATUS: BACKEND_ERROR";
+    telemetryState.style.color = "#EF4444";
+    telemetryState.style.borderColor = "#EF4444";
+
+    appendConsoleLog("ERROR", `Failed to communicate with LSTM backend: ${err.message}`, true);
+    appendConsoleLog("HELP", `Please verify that server.py is running in terminal: "python server.py"`, true);
+
+    verdictHero.style.display = "block";
+    verdictGenreText.textContent = "BACKEND ERROR";
+    verdictConfidenceText.textContent = "Server Offline";
+    
+    checkBackendHealth();
   }
 }
 
 // Custom File Upload Handler
-async function handleCustomUpload(file) {
+function handleCustomUpload(file) {
   if (!file) return;
 
   isCustomTrack = true;
@@ -555,16 +467,13 @@ async function handleCustomUpload(file) {
   updatePlayPauseUI(false);
   hideAudioLoader();
   resetOutputToIdle();
-
-  // Extract genuine acoustic features immediately
-  customTrackData = await extractAcousticFeatures(file);
 }
 
 // Initialization & Event Binding
 document.addEventListener("DOMContentLoaded", () => {
-  // Canvas sharp DPI resolution
-  canvas.width = canvas.clientWidth * window.devicePixelRatio;
-  canvas.height = canvas.clientHeight * window.devicePixelRatio;
+  // Check backend server connection immediately
+  checkBackendHealth();
+  setInterval(checkBackendHealth, 8000);
 
   // Play/Pause button
   playPauseBtn.addEventListener("click", togglePlay);
@@ -577,7 +486,7 @@ document.addEventListener("DOMContentLoaded", () => {
     });
   });
 
-  // Execute button
+  // Execute button - Triggers genuine neural network inference
   executeBtn.addEventListener("click", executeLSTM);
 
   // Custom audio file upload
@@ -604,6 +513,16 @@ document.addEventListener("DOMContentLoaded", () => {
       handleCustomUpload(e.dataTransfer.files[0]);
     }
   });
+
+  // Responsive Canvas Sizing for Crisp Visualizer Rendering
+  function syncCanvasDpi() {
+    if (canvas && canvas.parentElement) {
+      canvas.width = canvas.parentElement.clientWidth || 300;
+      canvas.height = canvas.parentElement.clientHeight || 74;
+    }
+  }
+  window.addEventListener("resize", syncCanvasDpi);
+  syncCanvasDpi();
 
   // Initial load
   loadTrack("classical");

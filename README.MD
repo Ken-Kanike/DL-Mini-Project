@@ -8,6 +8,10 @@
 > 🌐 **Live Interactive Web Application:** [https://ken-kanike.github.io/DL-Mini-Project/](https://ken-kanike.github.io/DL-Mini-Project/)  
 > Test preloaded GTZAN audio samples or upload custom tracks directly in your browser with real-time waveform visualization, execution telemetry, and LSTM genre classification.
 
+<div align="center">
+  <img src="SS.png" alt="Music Genre Classification Neural Engine UI Dashboard" width="100%">
+</div>
+
 ---
 
 ## Deep Learning Mini Project — Group 25
@@ -333,51 +337,47 @@ graph TD
 
 ```mermaid
 graph TD
-    Demo["Live Demonstration Options"] --> Opt1["Option 1: Live Web App (GitHub Pages)"]
-    Demo --> Opt2["Option 2: Streamlit Interactive UI (Local Python)"]
-    Demo --> Opt3["Option 3: Terminal CLI Execution"]
+    Demo["Live Demonstration Options"] --> Opt1["Option 1: Full-Stack Neural Engine UI (Local / Cloud Server)"]
+    Demo --> Opt2["Option 2: Direct CLI Neural Inference (test_model_direct.py)"]
+    Demo --> Opt3["Option 3: Streamlit Dashboard UI"]
 ```
 
-### Option 1: Live Web App on GitHub Pages (Instant Browser Testing)
-* **Live URL**: [https://ken-kanike.github.io/DL-Mini-Project/](https://ken-kanike.github.io/DL-Mini-Project/)
-* Features:
-  * Zero setup required — works directly in Chrome, Brave, Edge, Safari, and Mobile browsers.
-  * Real-time audio waveform visualizer.
-  * Test 8 preloaded benchmark tracks or drag-and-drop custom `.mp3` / `.wav` files.
-  * Step-by-step execution telemetry console and animated Softmax probability distribution bars.
+### Option 1: Full-Stack Neural Engine UI (Local or Cloud Deployment)
 
-### Option 2: Streamlit Web UI (Local Presentation with Python Engine)
-For live evaluation during college presentations using the local Python / Librosa backend:
+Run the Python LSTM inference server which hosts the vector UI and executes true Librosa 33D feature extraction and Keras LSTM forward passes:
+
+```bash
+# Start backend server (or double click start_server.bat on Windows)
+python -u server.py
+```
+* **Local Web Interface**: `http://127.0.0.1:5000`
+* **Health API**: `http://127.0.0.1:5000/api/status`
+* **Inference API**: `POST http://127.0.0.1:5000/api/predict` (Supports both multipart file uploads and benchmark genre references)
+* **Cloud Deployment Ready**: Includes [requirements.txt](file:///c:/Users/junai/Desktop/DL%20Mini%20Project/requirements.txt) and [Procfile](file:///c:/Users/junai/Desktop/DL%20Mini%20Project/Procfile) for 1-click deployment on Render, Railway, Hugging Face Spaces, or Koyeb.
+
+### Option 2: Direct Terminal CLI Inference (Zero UI / Raw Weights Verification)
+
+To run predictions directly from the trained Keras model weights without starting any server:
+
+```powershell
+# Run inference on any audio file:
+python test_model_direct.py "C:/path/to/your/audio.mp3"
+
+# Example: Run on preloaded classical sample
+python test_model_direct.py "audio/classical_music.mp3"
+```
+* Extracts 33 domain-specific features with Librosa.
+* Formats tensor into `[N, 128, 33]` temporal windows.
+* Directly computes `model.predict()` using [weights/model_weights.h5](file:///c:/Users/junai/Desktop/DL%20Mini%20Project/LSTM-Music-Genre-Classification-master/weights/model_weights.h5) and outputs raw softmax probabilities across all 8 GTZAN classes.
+
+### Option 3: Streamlit Interactive UI (Alternative Python Dashboard)
 
 ```bash
 cd LSTM-Music-Genre-Classification-master
 streamlit run app.py
 ```
-* Launches the interactive dashboard at `http://localhost:8501`.
-* Shows real-time audio playback, waveform extraction, 33-dimensional feature inspection, and model prediction.
+* Launches the alternative Streamlit dashboard at `http://localhost:8501`.
 
-### Option 3: Terminal CLI Prediction
-Run inference from PowerShell or command prompt:
-
-```bash
-cd LSTM-Music-Genre-Classification-master
-```
-```powershell
-# Test Classical Music
-python -c "import sys, tf_keras, tf_keras.models; sys.modules['keras'] = tf_keras; sys.modules['keras.models'] = tf_keras.models; sys.argv = ['predict_example.py', 'audio/classical_music.mp3']; exec(open('predict_example.py').read())"
-
-# Test Metal Music
-python -c "import sys, tf_keras, tf_keras.models; sys.modules['keras'] = tf_keras; sys.modules['keras.models'] = tf_keras.models; sys.argv = ['predict_example.py', 'audio/metal_music.mp3']; exec(open('predict_example.py').read())"
-
-# Test Pop Music
-python -c "import sys, tf_keras, tf_keras.models; sys.modules['keras'] = tf_keras; sys.modules['keras.models'] = tf_keras.models; sys.argv = ['predict_example.py', 'audio/pop_music.mp3']; exec(open('predict_example.py').read())"
-```
-
-**Expected Console Output:**
-```
-1/1 [==============================] - 1s 1s/step
-Model predict: classical
-```
 
 ---
 
