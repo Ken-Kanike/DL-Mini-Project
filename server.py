@@ -257,8 +257,9 @@ if __name__ == "__main__":
     if hasattr(sys.stdout, "reconfigure"):
         sys.stdout.reconfigure(encoding="utf-8")
     load_lstm_model()
-    port = int(os.environ.get("PORT", 5000))
+    default_port = 7860 if "SPACE_ID" in os.environ else 5000
+    port = int(os.environ.get("PORT", default_port))
     print("\n=======================================================")
-    print(f">> LSTM Neural Engine Backend Running on http://127.0.0.1:{port}")
+    print(f">> LSTM Neural Engine Backend Running on port {port}")
     print("=======================================================\n", flush=True)
     app.run(host="0.0.0.0", port=port, debug=False)
