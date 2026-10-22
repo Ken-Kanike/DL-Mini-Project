@@ -24,7 +24,8 @@ RUN pip install --no-cache-dir --upgrade pip && \
 # Copy all application code, model weights, and assets
 COPY --chown=user:user . .
 
-# Hugging Face Spaces expects traffic on port 7860
-EXPOSE 7860
+# Render default port 10000, Hugging Face 7860, local 5000
+ENV PORT=10000
+EXPOSE 10000 7860 5000
 
 CMD ["python", "-u", "server.py"]

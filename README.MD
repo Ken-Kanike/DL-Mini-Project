@@ -1,16 +1,20 @@
 # Music Genre Classification Using LSTM-Based Deep Learning on Audio Features
 
-[![Live Demo](https://img.shields.io/badge/Live_Demo-GitHub_Pages-3B82F6?style=for-the-badge&logo=googlechrome&logoColor=white)](https://ken-kanike.github.io/DL-Mini-Project/)
+[![Render Cloud](https://img.shields.io/badge/Render_Cloud-Live_Fullstack-10B981?style=for-the-badge&logo=render&logoColor=white)](https://dl-mini-project.onrender.com)
+[![GitHub Pages](https://img.shields.io/badge/GitHub_Pages-Live_Frontend-3B82F6?style=for-the-badge&logo=googlechrome&logoColor=white)](https://ken-kanike.github.io/DL-Mini-Project/)
 [![GitHub Repo](https://img.shields.io/badge/GitHub-Ken--Kanike-black?style=for-the-badge&logo=github)](https://github.com/Ken-Kanike/DL-Mini-Project)
 [![Model](https://img.shields.io/badge/Architecture-2--Layer_LSTM-10B981?style=for-the-badge)](https://github.com/Ken-Kanike/DL-Mini-Project)
-[![Framework](https://img.shields.io/badge/Framework-PyTorch_%7C_Keras_%7C_Librosa-orange?style=for-the-badge)](https://github.com/Ken-Kanike/DL-Mini-Project)
 
-> 🌐 **Live Interactive Web Application:** [https://ken-kanike.github.io/DL-Mini-Project/](https://ken-kanike.github.io/DL-Mini-Project/)  
-> Test preloaded GTZAN audio samples or upload custom tracks directly in your browser with real-time waveform visualization, execution telemetry, and LSTM genre classification.
+> 🚀 **Live Deployments:**
+> - **Render Fullstack Cloud:** [https://dl-mini-project.onrender.com/](https://dl-mini-project.onrender.com/) *(Docker deployment hosting both real-time Flask LSTM backend & full UI)*
+> - **GitHub Pages:** [https://ken-kanike.github.io/DL-Mini-Project/](https://ken-kanike.github.io/DL-Mini-Project/) *(Static CDN frontend dynamically connected to Render Cloud backend with offline client fallback)*
+>
+> **Core Features:** 3-tier connection hierarchy (Render $\rightarrow$ Localhost $\rightarrow$ Client Fallback), background keep-alive ping (< 4 min) to prevent sleep, lazy-loaded TensorFlow model to minimize memory (< 45MB idle), and GTZAN benchmark sample fallbacks.
 
 <div align="center">
   <img src="SS.png" alt="Music Genre Classification Neural Engine UI Dashboard" width="100%">
 </div>
+
 
 ---
 

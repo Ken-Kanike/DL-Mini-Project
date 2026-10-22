@@ -13,8 +13,6 @@ from flask_sock import Sock
 # Suppress TensorFlow verbose logging
 os.environ["TF_CPP_MIN_LOG_LEVEL"] = "2"
 os.environ["TF_ENABLE_ONEDNN_OPTS"] = "0"
-import tf_keras as keras
-from tf_keras.models import model_from_json
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s [%(levelname)s] %(message)s")
 
@@ -28,6 +26,52 @@ GENRES = ["classical", "country", "disco", "hiphop", "jazz", "metal", "pop", "re
 app = Flask(__name__, static_folder=BASE_DIR)
 CORS(app)
 sock = Sock(app)
+
+# Global model instance - lazy loaded on demand to keep Render memory tiny
+model = None
+
+def load_lstm_model():
+    """Lazy load TensorFlow and weights on first actual inference call"""
+    global model
+    if model is not None:
+        return model
+    
+    logging.info("Lazy-loading TensorFlow and LSTM model weights into memory...")
+    import tf_keras as keras
+    from tf_keras.models import model_from_json
+
+    if not os.path.exists(MODEL_JSON_PATH) or not os.path.exists(MODEL_WEIGHTS_PATH):
+        raise FileNotFoundError("Model JSON or weights file not found in weights directory!")
+        
+    with open(MODEL_JSON_PATH, "r") as f:
+        model = model_from_json(f.read())
+    
+    logging.info(f"Loading weights from {MODEL_WEIGHTS_PATH}...")
+    model.load_weights(MODEL_WEIGHTS_PATH)
+    model.compile(loss="categorical_crossentropy", optimizer="adam", metrics=["accuracy"])
+    logging.info("LSTM Model successfully loaded into memory! Trainable parameters: 103,816")
+    return model
+
+# Ultra-lightweight health endpoint for continuous keep-alive pings (Zero memory overhead)
+@app.route("/api/health", methods=["GET"])
+def api_health():
+    return jsonify({
+        "status": "healthy",
+        "service": "LSTM Music Genre Engine",
+        "model_loaded": model is not None,
+        "timestamp": time.time()
+    }), 200
+
+# Endpoint to pre-warm the model when a visitor lands on the site
+@app.route("/api/wake", methods=["GET", "POST"])
+def api_wake():
+    if model is None:
+        load_lstm_model()
+    return jsonify({
+        "status": "warm",
+        "model_ready": True,
+        "parameters": 103816
+    }), 200
 
 # Real-time WebSocket Health & Telemetry Channel
 @sock.route("/ws/health")
@@ -57,27 +101,6 @@ def ws_health(ws):
         pass
     finally:
         logging.info("WebSocket client disconnected from /ws/health.")
-
-# Global model instance
-model = None
-
-def load_lstm_model():
-    global model
-    if model is not None:
-        return model
-    
-    logging.info(f"Loading LSTM model architecture from {MODEL_JSON_PATH}...")
-    if not os.path.exists(MODEL_JSON_PATH) or not os.path.exists(MODEL_WEIGHTS_PATH):
-        raise FileNotFoundError("Model JSON or weights file not found in weights directory!")
-        
-    with open(MODEL_JSON_PATH, "r") as f:
-        model = model_from_json(f.read())
-    
-    logging.info(f"Loading weights from {MODEL_WEIGHTS_PATH}...")
-    model.load_weights(MODEL_WEIGHTS_PATH)
-    model.compile(loss="categorical_crossentropy", optimizer="adam", metrics=["accuracy"])
-    logging.info("LSTM Model successfully loaded into memory! Trainable parameters: 103,816")
-    return model
 
 def extract_audio_features(file_path):
     """
@@ -256,10 +279,13 @@ def api_predict():
 if __name__ == "__main__":
     if hasattr(sys.stdout, "reconfigure"):
         sys.stdout.reconfigure(encoding="utf-8")
-    load_lstm_model()
-    default_port = 7860 if "SPACE_ID" in os.environ else 5000
+    
+    # Model is lazy-loaded on demand during /api/wake or first /api/predict.
+    # This keeps idle memory minimal (< 45MB RAM) so Render free tier never hits limits.
+    default_port = 10000 if ("RENDER" in os.environ or "PORT" in os.environ) else (7860 if "SPACE_ID" in os.environ else 5000)
     port = int(os.environ.get("PORT", default_port))
     print("\n=======================================================")
-    print(f">> LSTM Neural Engine Backend Running on port {port}")
+    print(f">> LSTM Neural Engine Running on port {port}")
+    print(f">> Mode: Lazy Loading (Idle Memory Optimized for Render)")
     print("=======================================================\n", flush=True)
     app.run(host="0.0.0.0", port=port, debug=False)

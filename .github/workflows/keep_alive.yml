@@ -1,0 +1,23 @@
+name: Render Cloud Backend Keep-Alive
+
+on:
+  schedule:
+    # Trigger every 10 minutes to prevent Render's 15-minute inactivity spin-down
+    - cron: '*/10 * * * *'
+  workflow_dispatch:
+
+jobs:
+  keep-alive:
+    name: Ping Render Health API
+    runs-on: ubuntu-latest
+    steps:
+      - name: Send Lightweight Health Heartbeat Ping
+        run: |
+          echo "Sending keep-alive ping to Render backend..."
+          STATUS=$(curl -s -o /dev/null -w "%{http_code}" -m 30 "https://dl-mini-project.onrender.com/api/health")
+          echo "HTTP response status code: $STATUS"
+          if [ "$STATUS" -eq 200 ] || [ "$STATUS" -eq 404 ]; then
+            echo "Render backend contacted successfully (HTTP $STATUS)."
+          else
+            echo "Render response: $STATUS"
+          fi

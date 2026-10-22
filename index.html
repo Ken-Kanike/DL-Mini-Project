@@ -111,6 +111,29 @@
       border: 1px solid var(--border-subtle);
     }
 
+    .deploy-link {
+      text-decoration: none;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      color: var(--text-secondary);
+      transition: all 0.2s ease;
+      cursor: pointer;
+    }
+
+    .deploy-link:hover {
+      border-color: var(--accent-blue);
+      color: var(--accent-blue);
+      background: rgba(59, 130, 246, 0.08);
+    }
+
+    .deploy-link.active-host {
+      border-color: rgba(16, 185, 129, 0.5);
+      color: var(--accent-emerald);
+      background: rgba(16, 185, 129, 0.08);
+      font-weight: 600;
+    }
+
     /* Hero Section */
     .hero-header {
       margin-bottom: 34px;
@@ -964,12 +987,20 @@
     <header class="top-nav">
       <div class="brand-pill" id="backendPill">
         <span class="status-dot" id="backendDot"></span>
-        <span id="backendStatusText">LSTM Acoustic Engine &bull; Initializing...</span>
+        <span id="backendStatusText">LSTM Acoustic Engine &bull; Resolving Backend...</span>
       </div>
 
       <div class="sys-specs">
-        <span class="spec-badge" id="backendHostBadge">Local: Checking (http://127.0.0.1:5000)</span>
-        <span class="spec-badge" id="wsStatusBadge">WS: Disconnected</span>
+        <a href="https://dl-mini-project.onrender.com/" class="spec-badge deploy-link" id="renderDeployBadge" target="_blank" rel="noopener" title="Render Cloud Deployment">
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"></path><polyline points="15 3 21 3 21 9"></polyline><line x1="10" y1="14" x2="21" y2="3"></line></svg>
+          Render Cloud
+        </a>
+        <a href="https://ken-kanike.github.io/DL-Mini-Project/" class="spec-badge deploy-link" id="ghDeployBadge" target="_blank" rel="noopener" title="GitHub Pages Deployment">
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"></path><polyline points="15 3 21 3 21 9"></polyline><line x1="10" y1="14" x2="21" y2="3"></line></svg>
+          GitHub Pages
+        </a>
+        <span class="spec-badge" id="backendHostBadge">Checking Hierarchy...</span>
+        <span class="spec-badge" id="wsStatusBadge">Telemetry: Standby</span>
         <span class="spec-badge">103,816 Weights</span>
       </div>
     </header>

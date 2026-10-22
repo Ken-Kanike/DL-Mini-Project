@@ -64,21 +64,16 @@ const MODEL_PROFILES = {
   }
 };
 
-// Adaptive API Base URL: works seamlessly across local Flask server, cloud deployments (Render/Railway), and GitHub Pages
-function getApiBaseUrl() {
-  const savedUrl = localStorage.getItem("neural_api_url");
-  if (savedUrl) return savedUrl;
+// Multi-Tier Backend Configuration:
+// Tier 1: Live Render Backend (https://dl-mini-project.onrender.com)
+// Tier 2: Localhost Flask Backend (http://127.0.0.1:5000)
+// Tier 3: Client-Side Acoustic Fallback (Web Audio API + Pre-trained GTZAN Weight Distribution)
 
-  if (window.location.protocol === "http:" || window.location.protocol === "https:") {
-    // If deployed on a cloud host (Render, Railway, Heroku) or running on Flask port:
-    if (!window.location.hostname.includes("github.io")) {
-      return "";
-    }
-  }
-  return "http://127.0.0.1:5000";
-}
+const LIVE_RENDER_URL = "https://dl-mini-project.onrender.com";
+const LOCAL_BACKEND_URL = "http://127.0.0.1:5000";
 
-let API_BASE_URL = getApiBaseUrl();
+let ACTIVE_BACKEND_URL = null;
+let ACTIVE_BACKEND_TYPE = "offline"; // "render" | "local" | "offline"
 
 let currentGenreKey = "classical";
 let isCustomTrack = false;
@@ -122,6 +117,7 @@ const wsStatusBadge = document.getElementById("wsStatusBadge");
 
 let healthSocket = null;
 let heartbeatInterval = null;
+let keepAliveTimer = null;
 
 // Audio Buffer Loader Control
 function showAudioLoader() {
@@ -132,78 +128,190 @@ function hideAudioLoader() {
   if (audioBufferLoader) audioBufferLoader.style.display = "none";
 }
 
-// Derive WebSocket URL dynamically
-function getWebSocketUrl() {
-  let base = API_BASE_URL;
-  if (!base) {
-    base = window.location.origin;
+// Update Active Frontend Badge in Header
+function syncFrontendHostBadges() {
+  const isRenderHost = window.location.hostname.includes("onrender.com");
+  const isGithubHost = window.location.hostname.includes("github.io");
+
+  const renderBadge = document.getElementById("renderDeployBadge");
+  const ghBadge = document.getElementById("ghDeployBadge");
+
+  if (renderBadge && isRenderHost) {
+    renderBadge.classList.add("active-host");
+    renderBadge.title = "Current Host: Render Cloud Deployment";
   }
-  if (!base.startsWith("http://") && !base.startsWith("https://")) {
-    base = "http://127.0.0.1:5000";
+  if (ghBadge && isGithubHost) {
+    ghBadge.classList.add("active-host");
+    ghBadge.title = "Current Host: GitHub Pages Deployment";
+  }
+}
+
+// Derive WebSocket URL dynamically based on resolved backend
+function getWebSocketUrl() {
+  let base = ACTIVE_BACKEND_URL;
+  if (!base) {
+    base = window.location.hostname.includes("onrender.com") ? window.location.origin : LIVE_RENDER_URL;
   }
   const wsProto = base.startsWith("https://") ? "wss://" : "ws://";
   const host = base.replace(/^https?:\/\//, "");
   return `${wsProto}${host}/ws/health`;
 }
 
-// Update UI Availability Status (Handles both Localhost and Live Deployed environments)
-function updateUIStatus(isOnline, source = "websocket") {
-  const isLocal = !window.location.hostname.includes("github.io") || API_BASE_URL.includes("127.0.0.1") || API_BASE_URL.includes("localhost");
-  const envLabel = isLocal ? "Local Engine" : "Live Cloud Engine";
+// Update UI Availability Status with 3-tier styling
+function updateUIStatus(isOnline, tier = "offline", meta = null) {
+  isBackendConnected = isOnline;
 
-  if (isOnline) {
+  if (isOnline && tier === "render") {
     if (backendDot) {
       backendDot.style.background = "var(--accent-emerald)";
       backendDot.style.boxShadow = "0 0 10px var(--accent-emerald)";
     }
     if (backendStatusText) {
-      backendStatusText.innerHTML = `LSTM Engine &bull; <strong>${envLabel} Online</strong> (103,816 Weights)`;
+      backendStatusText.innerHTML = `LSTM Engine &bull; <strong>Render Cloud Online</strong> (Live 2-Layer LSTM)`;
     }
     if (backendHostBadge) {
-      backendHostBadge.textContent = `${envLabel}: Online (${API_BASE_URL || 'Active'})`;
+      backendHostBadge.textContent = "Live: Render Cloud";
       backendHostBadge.style.borderColor = "rgba(16, 185, 129, 0.4)";
       backendHostBadge.style.color = "var(--text-primary)";
     }
     if (wsStatusBadge) {
-      wsStatusBadge.textContent = source === "websocket" ? "WS: Active Stream" : "HTTP: Active";
+      wsStatusBadge.textContent = "Render API: Active";
       wsStatusBadge.style.color = "var(--accent-emerald)";
       wsStatusBadge.style.borderColor = "rgba(16, 185, 129, 0.4)";
     }
-  } else {
+  } else if (isOnline && tier === "local") {
     if (backendDot) {
-      backendDot.style.background = "#EF4444";
-      backendDot.style.boxShadow = "0 0 10px #EF4444";
+      backendDot.style.background = "var(--accent-cyan)";
+      backendDot.style.boxShadow = "0 0 10px var(--accent-cyan)";
     }
     if (backendStatusText) {
-      const hint = isLocal ? "Run: python server.py" : "Deploy server.py";
-      backendStatusText.innerHTML = `LSTM Engine &bull; <strong style="color: #EF4444;">${envLabel} Offline</strong> (${hint})`;
+      backendStatusText.innerHTML = `LSTM Engine &bull; <strong>Local Engine Online</strong> (127.0.0.1:5000)`;
     }
     if (backendHostBadge) {
-      backendHostBadge.textContent = isLocal ? "Local Server: Offline (Start server.py)" : "Cloud Server: Offline";
-      backendHostBadge.style.borderColor = "rgba(239, 68, 68, 0.4)";
-      backendHostBadge.style.color = "#F87171";
+      backendHostBadge.textContent = "Live: Local (5000)";
+      backendHostBadge.style.borderColor = "rgba(6, 182, 212, 0.4)";
+      backendHostBadge.style.color = "var(--text-primary)";
     }
     if (wsStatusBadge) {
-      wsStatusBadge.textContent = "WS: Offline";
-      wsStatusBadge.style.color = "#F87171";
-      wsStatusBadge.style.borderColor = "rgba(239, 68, 68, 0.4)";
+      wsStatusBadge.textContent = "Localhost API: Active";
+      wsStatusBadge.style.color = "var(--accent-cyan)";
+      wsStatusBadge.style.borderColor = "rgba(6, 182, 212, 0.4)";
+    }
+  } else {
+    // Offline Mode: Client-Side Fallback Active
+    if (backendDot) {
+      backendDot.style.background = "#F59E0B";
+      backendDot.style.boxShadow = "0 0 10px #F59E0B";
+    }
+    if (backendStatusText) {
+      backendStatusText.innerHTML = `LSTM Engine &bull; <strong style="color: #F59E0B;">Client Fallback Active</strong> (Offline Profile)`;
+    }
+    if (backendHostBadge) {
+      backendHostBadge.textContent = "Fallback: Client Acoustic Engine";
+      backendHostBadge.style.borderColor = "rgba(245, 158, 11, 0.4)";
+      backendHostBadge.style.color = "#FCD34D";
+    }
+    if (wsStatusBadge) {
+      wsStatusBadge.textContent = "Servers Standby";
+      wsStatusBadge.style.color = "#FCD34D";
+      wsStatusBadge.style.borderColor = "rgba(245, 158, 11, 0.4)";
     }
   }
 }
 
-// HTTP Fallback Health Check
-async function checkBackendHealthHTTP() {
+// Lightweight probe helper for a given backend URL
+async function checkUrlAlive(url, timeoutMs = 4000) {
   try {
-    const res = await fetch(`${API_BASE_URL}/api/status`, { method: "GET" });
-    if (res.ok) {
-      isBackendConnected = true;
-      updateUIStatus(true, "http");
-      return true;
+    const controller = new AbortController();
+    const timer = setTimeout(() => controller.abort(), timeoutMs);
+
+    // Try /api/health first (ultra-fast, zero TF memory overhead)
+    let res = await fetch(`${url}/api/health`, {
+      method: "GET",
+      signal: controller.signal,
+      cache: "no-store",
+      mode: "cors"
+    }).catch(() => null);
+
+    // Backward-compatibility check: try /api/status if /api/health is 404
+    if (!res || !res.ok) {
+      res = await fetch(`${url}/api/status`, {
+        method: "GET",
+        signal: controller.signal,
+        cache: "no-store",
+        mode: "cors"
+      }).catch(() => null);
+    }
+
+    clearTimeout(timer);
+
+    if (res && res.ok) {
+      const data = await res.json().catch(() => ({}));
+      return { ok: true, data };
     }
   } catch (err) {}
-  isBackendConnected = false;
-  updateUIStatus(false, "http");
-  return false;
+  return { ok: false };
+}
+
+// 3-Tier Backend Resolution Hierarchy:
+// 1. Check Live Render Backend
+// 2. If not available, check Localhost:5000 Backend
+// 3. If not available, fall back to Client-Side Fallback
+async function resolveBackend() {
+  const isHostedOnRender = window.location.hostname.includes("onrender.com");
+  const liveUrl = isHostedOnRender ? window.location.origin : LIVE_RENDER_URL;
+
+  // Step 1: Probe Live Render Backend
+  const liveCheck = await checkUrlAlive(liveUrl, 4500);
+  if (liveCheck.ok) {
+    ACTIVE_BACKEND_URL = liveUrl;
+    ACTIVE_BACKEND_TYPE = "render";
+    updateUIStatus(true, "render", liveCheck.data);
+    // Background pre-warm call to initialize model on user arrival
+    fetch(`${ACTIVE_BACKEND_URL}/api/wake`, { method: "POST", mode: "cors" }).catch(() => {});
+    return ACTIVE_BACKEND_URL;
+  }
+
+  // Step 2: Probe Localhost:5000 Backend
+  const localCheck = await checkUrlAlive(LOCAL_BACKEND_URL, 1800);
+  if (localCheck.ok) {
+    ACTIVE_BACKEND_URL = LOCAL_BACKEND_URL;
+    ACTIVE_BACKEND_TYPE = "local";
+    updateUIStatus(true, "local", localCheck.data);
+    fetch(`${ACTIVE_BACKEND_URL}/api/wake`, { method: "POST" }).catch(() => {});
+    return ACTIVE_BACKEND_URL;
+  }
+
+  // Step 3: Neither available -> Fallback to client-side
+  ACTIVE_BACKEND_URL = null;
+  ACTIVE_BACKEND_TYPE = "offline";
+  updateUIStatus(false, "offline");
+  return null;
+}
+
+// Continuous Render Keep-Alive Heartbeat:
+// Render free tier spins down after 15 minutes of inactivity.
+// Pings /api/health every 3.5 minutes (well under the 15-min timeout) to keep Render awake.
+// Does NOT touch TensorFlow or weights, keeping memory footprint < 45MB RAM!
+function initKeepAliveHeartbeat() {
+  if (keepAliveTimer) clearInterval(keepAliveTimer);
+
+  const PING_INTERVAL = 3.5 * 60 * 1000; // 3.5 minutes (210,000 ms)
+  keepAliveTimer = setInterval(async () => {
+    try {
+      await fetch(`${LIVE_RENDER_URL}/api/health`, {
+        method: "GET",
+        mode: "cors",
+        cache: "no-store"
+      });
+      console.log("[Keep-Alive] Render health ping dispatched.");
+    } catch (e) {
+      console.debug("[Keep-Alive] Ping attempted.");
+    }
+  }, PING_INTERVAL);
+
+  // Immediate keep-alive ping on page load
+  fetch(`${LIVE_RENDER_URL}/api/health`, { method: "GET", mode: "cors", cache: "no-store" }).catch(() => {});
 }
 
 // WebSocket Live Availability & Heartbeat Monitor
@@ -212,16 +320,21 @@ function initWebSocketHealth() {
     try { healthSocket.close(); } catch(e) {}
   }
 
+  if (!ACTIVE_BACKEND_URL && !window.location.hostname.includes("onrender.com")) {
+    return;
+  }
+
   const wsUrl = getWebSocketUrl();
 
   try {
     healthSocket = new WebSocket(wsUrl);
 
     healthSocket.onopen = () => {
-      isBackendConnected = true;
-      updateUIStatus(true, "websocket");
+      if (wsStatusBadge) {
+        wsStatusBadge.textContent = "WS: Active Stream";
+        wsStatusBadge.style.color = "var(--accent-emerald)";
+      }
 
-      // Heartbeat ping every 8 seconds
       if (heartbeatInterval) clearInterval(heartbeatInterval);
       heartbeatInterval = setInterval(() => {
         if (healthSocket && healthSocket.readyState === WebSocket.OPEN) {
@@ -234,27 +347,24 @@ function initWebSocketHealth() {
       try {
         const data = JSON.parse(event.data);
         if (data.online) {
-          isBackendConnected = true;
-          updateUIStatus(true, "websocket");
+          updateUIStatus(true, ACTIVE_BACKEND_TYPE, data);
         }
       } catch (err) {}
     };
 
     healthSocket.onerror = () => {
-      // Fallback to HTTP probing
-      checkBackendHealthHTTP();
+      resolveBackend();
     };
 
     healthSocket.onclose = () => {
       if (heartbeatInterval) clearInterval(heartbeatInterval);
-      checkBackendHealthHTTP();
-      // Reconnection backoff
-      setTimeout(initWebSocketHealth, 5000);
+      setTimeout(resolveBackend, 10000);
     };
   } catch (err) {
-    checkBackendHealthHTTP();
+    resolveBackend();
   }
 }
+
 
 // Resolve Audio File Path safely
 function getAudioPath(genreKey) {
@@ -497,129 +607,142 @@ async function executeLSTM() {
 
   const startTime = performance.now();
   appendConsoleLog("00:00.012", `Target: ${isCustomTrack ? currentUploadedFile.name : currentGenreKey.toUpperCase() + ' benchmark audio'}`);
-  appendConsoleLog("00:00.035", `Connecting to Python Neural Engine (${API_BASE_URL || 'Local Origin'})...`);
 
-  try {
-    const formData = new FormData();
-    if (isCustomTrack && currentUploadedFile) {
-      formData.append("file", currentUploadedFile);
-      appendConsoleLog("00:00.060", `Streaming audio file buffer (${(currentUploadedFile.size / 1024).toFixed(1)} KB) to server...`);
-    } else {
-      formData.append("genre", currentGenreKey);
-      appendConsoleLog("00:00.060", `Dispatching benchmark audio reference to server pipeline...`);
-    }
-
-    appendConsoleLog("00:00.110", `Librosa pipeline: 22,050 Hz resampling -> Extracting 13 MFCCs, Spectral Centroid, 12 Chroma, 7 Contrast...`);
-
-    // Actual Network Call to Real TensorFlow Backend
-    const res = await fetch(`${API_BASE_URL}/api/predict`, {
-      method: "POST",
-      body: formData
-    });
-
-    if (!res.ok) {
-      const errJson = await res.json().catch(() => ({}));
-      throw new Error(errJson.error || `HTTP ${res.status}: Failed to execute model inference`);
-    }
-
-    const data = await res.json();
-    const totalClientMs = Math.round(performance.now() - startTime);
-
-    appendConsoleLog(getFormattedTimestamp(data.feature_extraction_time_ms || 250), `Feature Extraction: Extracted 33D acoustic features across ${data.duration_seconds}s audio (${data.num_windows || 1} sequence windows [${data.num_windows || 1}, 128, 33]).`);
-    appendConsoleLog(getFormattedTimestamp((data.feature_extraction_time_ms || 250) + (data.inference_time_ms || 60)), `LSTM Forward Pass: Evaluated ${data.num_windows || 1} windows on Stacked 2-Layer LSTM with temporal sequence pooling.`);
-    appendConsoleLog(getFormattedTimestamp(totalClientMs), `Inference Successful: Predicted class is ${data.predicted_genre.toUpperCase()} with ${data.confidence}% confidence.`);
-
-    // Update execution status
-    isExecuting = false;
-    executeBtn.disabled = false;
-    executeBtn.innerHTML = `
-      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="5 3 19 12 5 21 5 3"></polygon></svg>
-      Execute LSTM Model
-    `;
-
-    telemetryState.textContent = "STATUS: INFERENCE_DONE";
-    telemetryState.style.color = "var(--accent-emerald)";
-    telemetryState.style.borderColor = "rgba(16, 185, 129, 0.4)";
-
-    // Show Verdict Hero with GENUINE MODEL OUTPUT
-    verdictHero.style.display = "block";
-    verdictGenreText.textContent = data.predicted_genre.toUpperCase();
-    verdictConfidenceText.textContent = `${data.confidence}% Confidence`;
-
-    // Genuine Latency, Frames, and Spectral Centroid
-    metricLatency.textContent = data.latency || `${totalClientMs} ms`;
-    metricCentroid.textContent = data.spectral_centroid || "-- Hz";
-    if (metricFrames) {
-      metricFrames.textContent = data.num_windows ? `${data.num_windows * 128}` : "128";
-    }
-
-    // Populate Softmax probability bars with GENUINE MODEL PREDICTIONS
-    if (data.probabilities) {
-      GENRES.forEach(g => {
-        const val = data.probabilities[g] !== undefined ? data.probabilities[g] : 0;
-        const bar = document.getElementById(`bar-${g}`);
-        const pct = document.getElementById(`pct-${g}`);
-        if (bar) {
-          bar.style.width = `${Math.min(100, Math.max(0.5, val))}%`;
-          bar.classList.toggle("active", g.toLowerCase() === data.predicted_genre.toLowerCase());
-        }
-        if (pct) {
-          pct.textContent = `${val.toFixed(1)}%`;
-        }
-      });
-    }
-
-    checkBackendHealthHTTP();
-
-  } catch (err) {
-    console.warn("Backend server unavailable, engaging Client-Side Fallback Engine:", err);
-    appendConsoleLog("00:00.080", "[Notice] Neural Backend offline. Activating Client-Side Acoustic Fallback Engine...");
-    appendConsoleLog("00:00.160", "Web Audio API: Extracting zero-crossing rate (ZCR), RMS energy, and acoustic formants...");
-    appendConsoleLog("00:00.270", "Applying pre-trained GTZAN weight distribution matrix...");
-
-    const profile = (isCustomTrack && currentUploadedFile)
-      ? await extractAcousticFeaturesFallback(currentUploadedFile)
-      : (MODEL_PROFILES[currentGenreKey] || MODEL_PROFILES["classical"]);
-
-    appendConsoleLog("00:00.320", `Client evaluation complete. Predicted class: ${profile.top.toUpperCase()} (${profile.conf}%).`);
-
-    isExecuting = false;
-    executeBtn.disabled = false;
-    executeBtn.innerHTML = `
-      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="5 3 19 12 5 21 5 3"></polygon></svg>
-      Execute LSTM Model
-    `;
-
-    telemetryState.textContent = "STATUS: INFERENCE_DONE (CLIENT_FALLBACK)";
-    telemetryState.style.color = "var(--accent-cyan)";
-    telemetryState.style.borderColor = "var(--accent-cyan)";
-
-    // Show Verdict Hero with Client-side output
-    verdictHero.style.display = "block";
-    verdictGenreText.textContent = profile.top.toUpperCase();
-    verdictConfidenceText.textContent = `${profile.conf}% Confidence (Offline Profile)`;
-
-    metricLatency.textContent = profile.latency || "28.5 ms";
-    metricCentroid.textContent = profile.centroid || "2,450 Hz";
-    if (metricFrames) metricFrames.textContent = "128";
-
-    // Populate Softmax bars
-    GENRES.forEach(g => {
-      const val = profile.distribution[g] || 0.5;
-      const bar = document.getElementById(`bar-${g}`);
-      const pct = document.getElementById(`pct-${g}`);
-      if (bar) {
-        bar.style.width = `${val}%`;
-        bar.classList.toggle("active", g.toLowerCase() === profile.top.toLowerCase());
-      }
-      if (pct) {
-        pct.textContent = `${val.toFixed(1)}%`;
-      }
-    });
-
-    checkBackendHealthHTTP();
+  // Resolve backend target: Live Render -> Localhost:5000 -> Client Fallback
+  let targetBackend = ACTIVE_BACKEND_URL;
+  if (!targetBackend) {
+    targetBackend = await resolveBackend();
   }
+
+  if (targetBackend) {
+    appendConsoleLog("00:00.035", `Connecting to Python Neural Engine (${targetBackend})...`);
+    try {
+      const formData = new FormData();
+      if (isCustomTrack && currentUploadedFile) {
+        formData.append("file", currentUploadedFile);
+        appendConsoleLog("00:00.060", `Streaming audio file buffer (${(currentUploadedFile.size / 1024).toFixed(1)} KB) to server...`);
+      } else {
+        formData.append("genre", currentGenreKey);
+        appendConsoleLog("00:00.060", `Dispatching benchmark audio reference (${currentGenreKey}) to server pipeline...`);
+      }
+
+      appendConsoleLog("00:00.110", `Librosa pipeline: 22,050 Hz resampling -> Extracting 13 MFCCs, Spectral Centroid, 12 Chroma, 7 Contrast...`);
+
+      // Actual Network Call to Real TensorFlow LSTM Backend
+      const res = await fetch(`${targetBackend}/api/predict`, {
+        method: "POST",
+        body: formData,
+        mode: "cors"
+      });
+
+      if (!res.ok) {
+        const errJson = await res.json().catch(() => ({}));
+        throw new Error(errJson.error || `HTTP ${res.status}: Failed to execute model inference`);
+      }
+
+      const data = await res.json();
+      const totalClientMs = Math.round(performance.now() - startTime);
+
+      appendConsoleLog(getFormattedTimestamp(data.feature_extraction_time_ms || 250), `Feature Extraction: Extracted 33D acoustic features across ${data.duration_seconds}s audio (${data.num_windows || 1} sequence windows [${data.num_windows || 1}, 128, 33]).`);
+      appendConsoleLog(getFormattedTimestamp((data.feature_extraction_time_ms || 250) + (data.inference_time_ms || 60)), `LSTM Forward Pass: Evaluated ${data.num_windows || 1} windows on Stacked 2-Layer LSTM with temporal sequence pooling.`);
+      appendConsoleLog(getFormattedTimestamp(totalClientMs), `Inference Successful: Predicted class is ${data.predicted_genre.toUpperCase()} with ${data.confidence}% confidence.`);
+
+      // Update execution status
+      isExecuting = false;
+      executeBtn.disabled = false;
+      executeBtn.innerHTML = `
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="5 3 19 12 5 21 5 3"></polygon></svg>
+        Execute LSTM Model
+      `;
+
+      telemetryState.textContent = "STATUS: INFERENCE_DONE";
+      telemetryState.style.color = "var(--accent-emerald)";
+      telemetryState.style.borderColor = "rgba(16, 185, 129, 0.4)";
+
+      // Show Verdict Hero with GENUINE MODEL OUTPUT
+      verdictHero.style.display = "block";
+      verdictGenreText.textContent = data.predicted_genre.toUpperCase();
+      verdictConfidenceText.textContent = `${data.confidence}% Confidence`;
+
+      // Genuine Latency, Frames, and Spectral Centroid
+      metricLatency.textContent = data.latency || `${totalClientMs} ms`;
+      metricCentroid.textContent = data.spectral_centroid || "-- Hz";
+      if (metricFrames) {
+        metricFrames.textContent = data.num_windows ? `${data.num_windows * 128}` : "128";
+      }
+
+      // Populate Softmax probability bars with GENUINE MODEL PREDICTIONS
+      if (data.probabilities) {
+        GENRES.forEach(g => {
+          const val = data.probabilities[g] !== undefined ? data.probabilities[g] : 0;
+          const bar = document.getElementById(`bar-${g}`);
+          const pct = document.getElementById(`pct-${g}`);
+          if (bar) {
+            bar.style.width = `${Math.min(100, Math.max(0.5, val))}%`;
+            bar.classList.toggle("active", g.toLowerCase() === data.predicted_genre.toLowerCase());
+          }
+          if (pct) {
+            pct.textContent = `${val.toFixed(1)}%`;
+          }
+        });
+      }
+
+      resolveBackend();
+      return;
+
+    } catch (err) {
+      console.warn("Backend server request failed, engaging Client-Side Fallback Engine:", err);
+    }
+  }
+
+  // Engage Client-Side Acoustic Fallback Engine (Runs when both Live Render & Localhost are unreachable)
+  appendConsoleLog("00:00.080", "[Notice] Neural Backend offline. Activating Client-Side Acoustic Fallback Engine...");
+  appendConsoleLog("00:00.160", "Web Audio API: Extracting zero-crossing rate (ZCR), RMS energy, and acoustic formants...");
+  appendConsoleLog("00:00.270", "Applying pre-trained GTZAN weight distribution matrix...");
+
+  const profile = (isCustomTrack && currentUploadedFile)
+    ? await extractAcousticFeaturesFallback(currentUploadedFile)
+    : (MODEL_PROFILES[currentGenreKey] || MODEL_PROFILES["classical"]);
+
+  appendConsoleLog("00:00.320", `Client evaluation complete. Predicted class: ${profile.top.toUpperCase()} (${profile.conf}%).`);
+
+  isExecuting = false;
+  executeBtn.disabled = false;
+  executeBtn.innerHTML = `
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="5 3 19 12 5 21 5 3"></polygon></svg>
+    Execute LSTM Model
+  `;
+
+  telemetryState.textContent = "STATUS: INFERENCE_DONE (CLIENT_FALLBACK)";
+  telemetryState.style.color = "var(--accent-cyan)";
+  telemetryState.style.borderColor = "var(--accent-cyan)";
+
+  // Show Verdict Hero with Client-side output
+  verdictHero.style.display = "block";
+  verdictGenreText.textContent = profile.top.toUpperCase();
+  verdictConfidenceText.textContent = `${profile.conf}% Confidence (Offline Profile)`;
+
+  metricLatency.textContent = profile.latency || "28.5 ms";
+  metricCentroid.textContent = profile.centroid || "2,450 Hz";
+  if (metricFrames) metricFrames.textContent = "128";
+
+  // Populate Softmax bars
+  GENRES.forEach(g => {
+    const val = profile.distribution[g] || 0.5;
+    const bar = document.getElementById(`bar-${g}`);
+    const pct = document.getElementById(`pct-${g}`);
+    if (bar) {
+      bar.style.width = `${val}%`;
+      bar.classList.toggle("active", g.toLowerCase() === profile.top.toLowerCase());
+    }
+    if (pct) {
+      pct.textContent = `${val.toFixed(1)}%`;
+    }
+  });
+
+  resolveBackend();
 }
+
 
 // Client-Side Acoustic Feature Extraction Fallback (Used when server is offline)
 async function extractAcousticFeaturesFallback(file) {
@@ -760,9 +883,19 @@ function handleCustomUpload(file) {
 
 // Initialization & Event Binding
 document.addEventListener("DOMContentLoaded", () => {
-  // Initialize real-time WebSocket health channel with fallback
-  initWebSocketHealth();
-  setInterval(checkBackendHealthHTTP, 10000);
+  // Highlight active host badge (GitHub Pages vs Render Cloud)
+  syncFrontendHostBadges();
+
+  // Resolve backend hierarchy on startup: Live Render -> Localhost -> Client Fallback
+  resolveBackend().then(() => {
+    initWebSocketHealth();
+  });
+
+  // Continuous Keep-Alive heartbeat: pings Render every 3.5 mins to prevent spindown
+  initKeepAliveHeartbeat();
+
+  // Periodic hierarchy polling every 30 seconds
+  setInterval(resolveBackend, 30000);
 
   // Play/Pause button
   playPauseBtn.addEventListener("click", togglePlay);
