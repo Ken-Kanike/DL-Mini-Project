@@ -1,0 +1,325 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Music Genre Classification | Deep Learning Mini Project</title>
+  <meta name="description" content="Music Genre Classification using Stacked LSTM Neural Networks on Audio Features (GTZAN Dataset) — Group 25, Batch B23">
+  <link rel="stylesheet" href="app.css">
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220%22%3E%3Ctext y=%2226%22 font-size=%2224%22%3E🎵%3C/text%3E%3C/svg%3E">
+</head>
+<body>
+
+  <div class="container">
+    
+    <!-- Header Section -->
+    <header class="header-section">
+      <div class="team-pill">
+        <span class="dot"></span>
+        <span>Deep Learning Mini Project &bull; Group 25 &bull; Batch B23</span>
+      </div>
+      <h1 class="title">Music Genre Classification</h1>
+      <p class="subtitle">
+        Sequence-aware genre recognition using stacked <strong>Long Short-Term Memory (LSTM)</strong> Recurrent Neural Networks trained on 33-dimensional acoustic and spectral representations from the GTZAN corpus.
+      </p>
+
+      <div class="team-bar">
+        <div class="team-chip">Roll 125: <strong>Arzoo Vaswani</strong></div>
+        <div class="team-chip">Roll 133: <strong>Riya Maurya</strong></div>
+        <div class="team-chip">Roll 137: <strong>Junaid Shaikh</strong></div>
+      </div>
+    </header>
+
+    <!-- Main Interactive Grid -->
+    <main class="main-grid">
+      
+      <!-- Left Column: Audio Input & Visualizer -->
+      <section class="glass-panel">
+        <h2 class="panel-title">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M9 18V5l12-2v13"></path>
+            <circle cx="6" cy="18" r="3"></circle>
+            <circle cx="18" cy="16" r="3"></circle>
+          </svg>
+          1. Select or Upload Audio Track
+        </h2>
+
+        <div class="genre-pills-label">Preloaded Sample Tracks</div>
+        <div class="genre-grid">
+          <button class="genre-btn active" data-genre="classical">
+            <span class="genre-icon">🎻</span>
+            <span>Classical</span>
+          </button>
+          <button class="genre-btn" data-genre="jazz">
+            <span class="genre-icon">🎷</span>
+            <span>Jazz</span>
+          </button>
+          <button class="genre-btn" data-genre="metal">
+            <span class="genre-icon">⚡</span>
+            <span>Metal</span>
+          </button>
+          <button class="genre-btn" data-genre="pop">
+            <span class="genre-icon">✨</span>
+            <span>Pop</span>
+          </button>
+          <button class="genre-btn" data-genre="hiphop">
+            <span class="genre-icon">🎤</span>
+            <span>Hip-Hop</span>
+          </button>
+          <button class="genre-btn" data-genre="reggae">
+            <span class="genre-icon">🌴</span>
+            <span>Reggae</span>
+          </button>
+          <button class="genre-btn" data-genre="disco">
+            <span class="genre-icon">🪩</span>
+            <span>Disco</span>
+          </button>
+          <button class="genre-btn" data-genre="country">
+            <span class="genre-icon">🤠</span>
+            <span>Country</span>
+          </button>
+        </div>
+
+        <!-- Custom Upload Zone -->
+        <input type="file" id="audioFileInput" accept=".mp3,.wav,.ogg" style="display: none;">
+        <div class="upload-box" id="uploadBox">
+          <div class="upload-icon">&#128229;</div>
+          <p class="upload-text">Drag & drop your custom audio file or <span>browse from PC</span></p>
+          <p style="font-size: 0.75rem; color: var(--text-dim); margin-top: 4px;">Supports MP3, WAV, OGG (30s clips)</p>
+        </div>
+
+        <!-- Audio Player & Live Visualizer -->
+        <div class="audio-card">
+          <div class="audio-track-info">
+            <span class="track-name" id="trackName">CLASSICAL - Sample Track (🎻)</span>
+            <span class="track-badge">22,050 Hz &bull; Mono</span>
+          </div>
+          <audio id="audioPlayer" controls preload="auto"></audio>
+        </div>
+
+        <div class="visualizer-container">
+          <canvas id="visualizerCanvas"></canvas>
+        </div>
+
+        <button class="btn-primary" id="classifyBtn">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <polygon points="5 3 19 12 5 21 5 3"></polygon>
+          </svg>
+          Classify Audio Genre
+        </button>
+      </section>
+
+      <!-- Right Column: Model Output & Probability Analysis -->
+      <section class="glass-panel">
+        <h2 class="panel-title">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"></path>
+          </svg>
+          2. Deep Learning Classification Results
+        </h2>
+
+        <!-- Prediction Banner -->
+        <div class="prediction-card">
+          <div class="prediction-label">Predicted Music Genre</div>
+          <div class="genre-verdict">
+            <span id="verdictEmoji">🎻</span>
+            <span id="verdictGenre">Classical</span>
+          </div>
+          <div>
+            <span class="confidence-chip" id="verdictConfidence">94.2% Match</span>
+          </div>
+        </div>
+
+        <!-- Execution Stats Grid -->
+        <div class="stats-grid">
+          <div class="stat-item">
+            <div class="stat-value" id="statLatency">27 ms</div>
+            <div class="stat-title">Inference Time</div>
+          </div>
+          <div class="stat-item">
+            <div class="stat-value">128</div>
+            <div class="stat-title">Sequence Frames</div>
+          </div>
+          <div class="stat-item">
+            <div class="stat-value">33</div>
+            <div class="stat-title">Feature Dims</div>
+          </div>
+          <div class="stat-item">
+            <div class="stat-value" id="statCentroid">1420 Hz</div>
+            <div class="stat-title">Spectral Centroid</div>
+          </div>
+        </div>
+
+        <!-- Softmax Probability Distribution -->
+        <h3 style="font-size: 0.95rem; font-weight: 600; margin-bottom: 12px; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.5px;">
+          Softmax Class Probabilities
+        </h3>
+        
+        <div class="prob-list">
+          <div class="prob-item">
+            <div class="prob-header">
+              <span class="prob-name">🎻 Classical</span>
+              <span class="prob-pct" id="val-classical">94.2%</span>
+            </div>
+            <div class="bar-track">
+              <div class="bar-fill highlight" id="bar-classical" style="width: 94.2%;"></div>
+            </div>
+          </div>
+
+          <div class="prob-item">
+            <div class="prob-header">
+              <span class="prob-name">🎷 Jazz</span>
+              <span class="prob-pct" id="val-jazz">2.1%</span>
+            </div>
+            <div class="bar-track">
+              <div class="bar-fill" id="bar-jazz" style="width: 2.1%;"></div>
+            </div>
+          </div>
+
+          <div class="prob-item">
+            <div class="prob-header">
+              <span class="prob-name">🤠 Country</span>
+              <span class="prob-pct" id="val-country">1.2%</span>
+            </div>
+            <div class="bar-track">
+              <div class="bar-fill" id="bar-country" style="width: 1.2%;"></div>
+            </div>
+          </div>
+
+          <div class="prob-item">
+            <div class="prob-header">
+              <span class="prob-name">🎤 Hip-Hop</span>
+              <span class="prob-pct" id="val-hiphop">0.8%</span>
+            </div>
+            <div class="bar-track">
+              <div class="bar-fill" id="bar-hiphop" style="width: 0.8%;"></div>
+            </div>
+          </div>
+
+          <div class="prob-item">
+            <div class="prob-header">
+              <span class="prob-name">✨ Pop</span>
+              <span class="prob-pct" id="val-pop">0.6%</span>
+            </div>
+            <div class="bar-track">
+              <div class="bar-fill" id="bar-pop" style="width: 0.6%;"></div>
+            </div>
+          </div>
+
+          <div class="prob-item">
+            <div class="prob-header">
+              <span class="prob-name">🪩 Disco</span>
+              <span class="prob-pct" id="val-disco">0.5%</span>
+            </div>
+            <div class="bar-track">
+              <div class="bar-fill" id="bar-disco" style="width: 0.5%;"></div>
+            </div>
+          </div>
+
+          <div class="prob-item">
+            <div class="prob-header">
+              <span class="prob-name">🌴 Reggae</span>
+              <span class="prob-pct" id="val-reggae">0.4%</span>
+            </div>
+            <div class="bar-track">
+              <div class="bar-fill" id="bar-reggae" style="width: 0.4%;"></div>
+            </div>
+          </div>
+
+          <div class="prob-item">
+            <div class="prob-header">
+              <span class="prob-name">⚡ Metal</span>
+              <span class="prob-pct" id="val-metal">0.2%</span>
+            </div>
+            <div class="bar-track">
+              <div class="bar-fill" id="bar-metal" style="width: 0.2%;"></div>
+            </div>
+          </div>
+        </div>
+
+      </section>
+
+    </main>
+
+    <!-- Audio Feature Inspection & Deep Learning Architecture -->
+    <section class="glass-panel" style="margin-top: 10px;">
+      <h2 class="panel-title">
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <polygon points="12 2 2 7 12 12 22 7 12 2"></polygon>
+          <polyline points="2 17 12 22 22 17"></polyline>
+          <polyline points="2 12 12 17 22 12"></polyline>
+        </svg>
+        3. Feature Extraction & Neural Network Architecture
+      </h2>
+
+      <!-- Feature Tabs -->
+      <div class="feature-tabs">
+        <button class="ft-tab active" data-tab="mfcc">1. MFCCs (13 Dims)</button>
+        <button class="ft-tab" data-tab="chroma">2. Chromagram (12 Dims)</button>
+        <button class="ft-tab" data-tab="contrast">3. Spectral Contrast (7 Dims)</button>
+        <button class="ft-tab" data-tab="centroid">4. Spectral Centroid (1 Dim)</button>
+      </div>
+
+      <div id="tab-mfcc" class="ft-content-panel">
+        <p class="ft-content">
+          <strong>Mel-Frequency Cepstral Coefficients (MFCCs)</strong> capture the overall spectral timbre and formant structures of instruments and vocals, mapped onto the non-linear human hearing frequency curve.
+        </p>
+        <span class="ft-badge">Shape: (128, 13) &bull; Extracted with librosa.feature.mfcc (n_mfcc=13, hop_length=512)</span>
+      </div>
+
+      <div id="tab-chroma" class="ft-content-panel" style="display: none;">
+        <p class="ft-content">
+          <strong>Chromagram (12 Semitone Pitch Classes)</strong> projects spectral energy onto the 12 chromatic musical pitch classes ($C, C\sharp, D, \dots, B$), representing harmonic progressions and chord structures regardless of octave.
+        </p>
+        <span class="ft-badge">Shape: (128, 12) &bull; Extracted with librosa.feature.chroma_stft</span>
+      </div>
+
+      <div id="tab-contrast" class="ft-content-panel" style="display: none;">
+        <p class="ft-content">
+          <strong>Spectral Contrast</strong> calculates the decibel difference between spectral peaks and valleys across 7 sub-bands, distinguishing clear melodic instrumentation from percussive or noisy audio.
+        </p>
+        <span class="ft-badge">Shape: (128, 7) &bull; Extracted with librosa.feature.spectral_contrast</span>
+      </div>
+
+      <div id="tab-centroid" class="ft-content-panel" style="display: none;">
+        <p class="ft-content">
+          <strong>Spectral Centroid</strong> indicates the center of mass of the audio spectrum, directly correlating with perceived "brightness" or high-frequency dominance in the sound.
+        </p>
+        <span class="ft-badge">Shape: (128, 1) &bull; Extracted with librosa.feature.spectral_centroid</span>
+      </div>
+
+      <!-- Architecture Breakdown Cards -->
+      <div class="arch-grid">
+        <div class="arch-card">
+          <div class="arch-layer">Layer 1: Stacked LSTM</div>
+          <div class="arch-params">82,944 Parameters</div>
+          <div class="arch-desc">128 Hidden Units &bull; return_sequences=True &bull; Dropout: 0.05 &bull; Recurrent Dropout: 0.35</div>
+        </div>
+        <div class="arch-card">
+          <div class="arch-layer">Layer 2: Dense LSTM</div>
+          <div class="arch-params">20,608 Parameters</div>
+          <div class="arch-desc">32 Hidden Units &bull; return_sequences=False &bull; Compresses sequential timeline to state vector</div>
+        </div>
+        <div class="arch-card">
+          <div class="arch-layer">Layer 3: Dense Softmax</div>
+          <div class="arch-params">264 Parameters</div>
+          <div class="arch-desc">8 Output Units &bull; Generates normalized genre probability distribution ($\sum p_i = 1$)</div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Footer -->
+    <footer>
+      <p>
+        Deep Learning Mini Project &bull; Group 25 &bull; 
+        <a href="https://github.com/Ken-Kanike/DL-Mini-Project" target="_blank" rel="noopener">
+          View on GitHub (Ken-Kanike/DL-Mini-Project)
+        </a>
+      </p>
+    </footer>
+
+  </div>
+
+  <script src="app.js"></script>
+</body>
+</html>
