@@ -381,6 +381,25 @@
       fill: currentColor;
     }
 
+    .audio-buffer-loader {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      background: rgba(59, 130, 246, 0.1);
+      border: 1px solid rgba(59, 130, 246, 0.3);
+      padding: 4px 8px;
+      border-radius: 999px;
+      font-family: ui-monospace, monospace;
+      font-size: 0.7rem;
+      color: var(--accent-blue);
+      flex-shrink: 0;
+    }
+
+    .audio-buffer-loader svg {
+      width: 13px !important;
+      height: 13px !important;
+    }
+
     .scrubber-container {
       flex-grow: 1;
       display: flex;
@@ -857,6 +876,12 @@
               <svg id="playIcon" width="16" height="16" viewBox="0 0 24 24"><polygon points="5 3 19 12 5 21 5 3"></polygon></svg>
               <svg id="pauseIcon" width="16" height="16" viewBox="0 0 24 24" style="display: none;"><rect x="6" y="4" width="4" height="16"></rect><rect x="14" y="4" width="4" height="16"></rect></svg>
             </button>
+
+            <!-- Real Buffering Indicator -->
+            <div id="audioBufferLoader" class="audio-buffer-loader" style="display: none;" title="Buffering audio...">
+              <svg class="spin" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="12" cy="12" r="10" stroke-opacity="0.25"></circle><path d="M12 2a10 10 0 0 1 10 10"></path></svg>
+              <span>Loading</span>
+            </div>
 
             <div class="scrubber-container">
               <div class="scrubber-bar" id="scrubberTrack">

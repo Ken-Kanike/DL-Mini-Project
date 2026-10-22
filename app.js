@@ -81,11 +81,21 @@ const audio = document.getElementById("nativeAudioPlayer");
 const playPauseBtn = document.getElementById("playPauseBtn");
 const playIcon = document.getElementById("playIcon");
 const pauseIcon = document.getElementById("pauseIcon");
+const audioBufferLoader = document.getElementById("audioBufferLoader");
 const scrubberTrack = document.getElementById("scrubberTrack");
 const scrubberFill = document.getElementById("scrubberFill");
 const currentTimeLabel = document.getElementById("currentTimeLabel");
 const durationLabel = document.getElementById("durationLabel");
 const trackLabel = document.getElementById("trackLabel");
+
+// Audio Buffer Loader Control (Real-time reactive, zero artificial delay)
+function showAudioLoader() {
+  if (audioBufferLoader) audioBufferLoader.style.display = "inline-flex";
+}
+
+function hideAudioLoader() {
+  if (audioBufferLoader) audioBufferLoader.style.display = "none";
+}
 
 const canvas = document.getElementById("freqCanvas");
 const ctx = canvas.getContext("2d");
@@ -148,6 +158,8 @@ function loadTrack(genreKey) {
   isCustomTrack = false;
   customTrackData = null;
 
+  hideAudioLoader();
+
   // Update active pill
   document.querySelectorAll(".genre-btn").forEach(btn => {
     btn.classList.toggle("active", btn.dataset.genre === genreKey);
@@ -180,21 +192,48 @@ function updatePlayPauseUI(isPlaying) {
 // Play / Pause Audio Handler
 function togglePlay() {
   if (audio.paused || audio.ended) {
+    showAudioLoader();
     audio.play().then(() => {
+      hideAudioLoader();
       updatePlayPauseUI(true);
     }).catch(err => {
       console.warn("Autoplay blocked or playback error:", err);
       // Fallback: reload and play on user gesture
       audio.load();
-      audio.play().then(() => updatePlayPauseUI(true)).catch(e => console.error(e));
+      audio.play().then(() => {
+        hideAudioLoader();
+        updatePlayPauseUI(true);
+      }).catch(e => {
+        console.error(e);
+        hideAudioLoader();
+      });
     });
   } else {
     audio.pause();
+    hideAudioLoader();
     updatePlayPauseUI(false);
   }
 }
 
-// Audio Event Handlers
+// Audio Event Handlers (Real buffering lifecycle)
+audio.addEventListener("waiting", () => {
+  showAudioLoader();
+});
+
+audio.addEventListener("playing", () => {
+  hideAudioLoader();
+  updatePlayPauseUI(true);
+});
+
+audio.addEventListener("canplay", () => {
+  hideAudioLoader();
+});
+
+audio.addEventListener("pause", () => {
+  hideAudioLoader();
+  updatePlayPauseUI(false);
+});
+
 audio.addEventListener("timeupdate", () => {
   if (!audio.duration) return;
   const progress = (audio.currentTime / audio.duration) * 100;
@@ -207,12 +246,14 @@ audio.addEventListener("loadedmetadata", () => {
 });
 
 audio.addEventListener("ended", () => {
+  hideAudioLoader();
   updatePlayPauseUI(false);
   scrubberFill.style.width = "0%";
   currentTimeLabel.textContent = "0:00";
 });
 
 audio.addEventListener("error", (e) => {
+  hideAudioLoader();
   console.warn("Audio loading fallback to subfolder path...");
   // Fallback to subfolder path if root audio folder is not resolved
   if (!isCustomTrack && !audio.src.includes("LSTM-Music-Genre-Classification-master")) {
@@ -385,6 +426,7 @@ function handleCustomUpload(file) {
   currentTimeLabel.textContent = "0:00";
 
   updatePlayPauseUI(false);
+  hideAudioLoader();
   resetOutputToIdle();
 
   // Synthesize realistic classification profile based on file characteristics

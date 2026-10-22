@@ -163,7 +163,7 @@ graph TD
 
 ### Parameter Calculation Breakdown:
 
-$$\text{LSTM Parameters} = 4 \times \left[(\text{input\_dim} + \text{hidden\_dim} + 1) \times \text{hidden\_dim}\right]$$
+$$\text{LSTM Parameters} = 4 \times \left[ (\text{Input Dim} + \text{Hidden Dim} + 1) \times \text{Hidden Dim} \right]$$
 
 | Layer | Type | Input Dimension | Output Dimension | Trainable Parameters | Activation |
 | :--- | :--- | :---: | :---: | :---: | :---: |
