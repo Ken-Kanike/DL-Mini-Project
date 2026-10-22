@@ -1,5 +1,14 @@
 # Music Genre Classification Using LSTM-Based Deep Learning on Audio Features
 
+[![Live Demo](https://img.shields.io/badge/Live_Demo-GitHub_Pages-3B82F6?style=for-the-badge&logo=googlechrome&logoColor=white)](https://ken-kanike.github.io/DL-Mini-Project/)
+[![GitHub Repo](https://img.shields.io/badge/GitHub-Ken--Kanike-black?style=for-the-badge&logo=github)](https://github.com/Ken-Kanike/DL-Mini-Project)
+[![Model](https://img.shields.io/badge/Architecture-2--Layer_LSTM-10B981?style=for-the-badge)](https://github.com/Ken-Kanike/DL-Mini-Project)
+
+> 🌐 **Live Interactive Web Application:** [https://ken-kanike.github.io/DL-Mini-Project/](https://ken-kanike.github.io/DL-Mini-Project/)  
+> Test preloaded GTZAN audio samples or upload custom tracks directly in the browser with real-time waveform visualization and LSTM classification.
+
+---
+
 ## Deep Learning Mini Project — Group 25
 
 ---

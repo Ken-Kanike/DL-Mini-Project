@@ -4,9 +4,754 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Music Genre Classification | LSTM Neural Engine</title>
-  <meta name="description" content="Sequence-aware music genre classification using stacked 2-layer LSTM Recurrent Neural Networks on 33-dimensional GTZAN acoustic features — Group 25, Batch B23">
-  <link rel="stylesheet" href="app.css">
+  <meta name="description" content="Automated sequence-aware music genre classification using stacked 2-layer LSTM Recurrent Neural Networks on GTZAN acoustic features.">
   <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220%200%2024%2024%22 fill=%22none%22 stroke=%22%233b82f6%22 stroke-width=%222%22><path d=%22M9%2018V5l12-2v13%22/><circle cx=%226%22 cy=%2218%22 r=%223%22/><circle cx=%2218%22 cy=%2216%22 r=%223%22/></svg>">
+
+  <style>
+    /* Embedded Core Styles (Guaranteed 100% Reliable Loading Across All Browsers & Shields) */
+    :root {
+      --bg-black: #000000;
+      --bg-surface-1: #0A0C12;
+      --bg-surface-2: #121520;
+      --bg-surface-3: #1A1F2E;
+      
+      --border-subtle: rgba(255, 255, 255, 0.08);
+      --border-medium: rgba(255, 255, 255, 0.16);
+      --border-active: #3B82F6;
+      
+      --accent-blue: #3B82F6;
+      --accent-blue-glow: rgba(59, 130, 246, 0.3);
+      --accent-cyan: #06B6D4;
+      --accent-emerald: #10B981;
+      
+      --text-primary: #F8FAFC;
+      --text-secondary: #94A3B8;
+      --text-tertiary: #64748B;
+      
+      --radius-sm: 8px;
+      --radius-md: 12px;
+      --radius-lg: 16px;
+      
+      --shadow-card: 0 16px 36px rgba(0, 0, 0, 0.7);
+    }
+
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      background-color: var(--bg-black);
+      background-image: 
+        radial-gradient(circle at 50% 0%, rgba(59, 130, 246, 0.1) 0%, transparent 60%),
+        linear-gradient(to right, rgba(255, 255, 255, 0.02) 1px, transparent 1px),
+        linear-gradient(to bottom, rgba(255, 255, 255, 0.02) 1px, transparent 1px);
+      background-size: 100% 100%, 40px 40px, 40px 40px;
+      color: var(--text-primary);
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Inter, Helvetica, Arial, sans-serif;
+      line-height: 1.5;
+      min-height: 100vh;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    .container {
+      max-width: 1200px;
+      margin: 0 auto;
+      padding: 36px 20px 70px;
+    }
+
+    /* Top Navigation Status Bar */
+    .top-nav {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 28px;
+      padding-bottom: 18px;
+      border-bottom: 1px solid var(--border-subtle);
+      flex-wrap: wrap;
+      gap: 12px;
+    }
+
+    .brand-pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 10px;
+      background: var(--bg-surface-2);
+      border: 1px solid var(--border-medium);
+      padding: 6px 14px;
+      border-radius: 9999px;
+      font-size: 0.82rem;
+      font-weight: 600;
+      color: var(--text-secondary);
+    }
+
+    .status-dot {
+      width: 7px;
+      height: 7px;
+      border-radius: 50%;
+      background: var(--accent-emerald);
+      box-shadow: 0 0 10px var(--accent-emerald);
+    }
+
+    .sys-specs {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      font-size: 0.8rem;
+      color: var(--text-tertiary);
+      font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+      flex-wrap: wrap;
+    }
+
+    .spec-badge {
+      background: rgba(255, 255, 255, 0.03);
+      padding: 4px 10px;
+      border-radius: 6px;
+      border: 1px solid var(--border-subtle);
+    }
+
+    /* Hero Section */
+    .hero-header {
+      margin-bottom: 34px;
+    }
+
+    .hero-title {
+      font-size: 2.6rem;
+      font-weight: 800;
+      letter-spacing: -0.03em;
+      line-height: 1.15;
+      margin-bottom: 10px;
+      background: linear-gradient(180deg, #FFFFFF 30%, #94A3B8 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+
+    .hero-subtitle {
+      font-size: 1.05rem;
+      color: var(--text-secondary);
+      max-width: 840px;
+      line-height: 1.6;
+    }
+
+    /* Layout Grid */
+    .main-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 24px;
+      margin-bottom: 28px;
+    }
+
+    @media (max-width: 920px) {
+      .main-grid {
+        grid-template-columns: 1fr;
+      }
+      .hero-title {
+        font-size: 2rem;
+      }
+    }
+
+    /* Card Panels */
+    .card-panel {
+      background: var(--bg-surface-1);
+      border: 1px solid var(--border-subtle);
+      border-radius: var(--radius-lg);
+      padding: 24px;
+      box-shadow: var(--shadow-card);
+    }
+
+    .panel-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 18px;
+      padding-bottom: 12px;
+      border-bottom: 1px solid var(--border-subtle);
+    }
+
+    .panel-title {
+      font-size: 0.9rem;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      color: var(--text-secondary);
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .panel-tag {
+      font-family: ui-monospace, monospace;
+      font-size: 0.72rem;
+      background: rgba(59, 130, 246, 0.1);
+      color: var(--accent-blue);
+      border: 1px solid rgba(59, 130, 246, 0.25);
+      padding: 2px 8px;
+      border-radius: 4px;
+    }
+
+    /* Sample Genre Selector */
+    .section-label {
+      font-size: 0.78rem;
+      font-weight: 600;
+      text-transform: uppercase;
+      color: var(--text-tertiary);
+      letter-spacing: 0.05em;
+      margin-bottom: 10px;
+    }
+
+    .genre-grid {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 8px;
+      margin-bottom: 18px;
+    }
+
+    @media (max-width: 500px) {
+      .genre-grid {
+        grid-template-columns: repeat(2, 1fr);
+      }
+    }
+
+    .genre-btn {
+      background: var(--bg-surface-2);
+      border: 1px solid var(--border-subtle);
+      border-radius: var(--radius-sm);
+      padding: 10px 8px;
+      cursor: pointer;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 6px;
+      color: var(--text-secondary);
+      font-family: inherit;
+      font-size: 0.8rem;
+      font-weight: 500;
+      transition: all 0.2s ease;
+    }
+
+    /* Explicit SVG sizes to prevent icon blow-up */
+    .genre-btn svg {
+      width: 20px !important;
+      height: 20px !important;
+      max-width: 20px;
+      max-height: 20px;
+      color: var(--text-tertiary);
+      transition: color 0.2s ease;
+      flex-shrink: 0;
+    }
+
+    .genre-btn:hover {
+      background: var(--bg-surface-3);
+      border-color: var(--border-medium);
+      color: var(--text-primary);
+    }
+
+    .genre-btn:hover svg {
+      color: var(--text-primary);
+    }
+
+    .genre-btn.active {
+      background: rgba(59, 130, 246, 0.12);
+      border-color: var(--accent-blue);
+      color: var(--accent-blue);
+      box-shadow: 0 0 14px var(--accent-blue-glow);
+    }
+
+    .genre-btn.active svg {
+      color: var(--accent-blue);
+    }
+
+    /* Upload Zone */
+    .upload-zone {
+      border: 1px dashed var(--border-medium);
+      background: rgba(255, 255, 255, 0.015);
+      border-radius: var(--radius-md);
+      padding: 14px 18px;
+      cursor: pointer;
+      margin-bottom: 18px;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      transition: all 0.2s ease;
+    }
+
+    .upload-zone:hover, .upload-zone.dragover {
+      border-color: var(--accent-blue);
+      background: rgba(59, 130, 246, 0.04);
+    }
+
+    .upload-icon {
+      width: 32px;
+      height: 32px;
+      border-radius: 6px;
+      background: var(--bg-surface-2);
+      border: 1px solid var(--border-subtle);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: var(--text-secondary);
+      flex-shrink: 0;
+    }
+
+    .upload-icon svg {
+      width: 16px !important;
+      height: 16px !important;
+    }
+
+    .upload-text {
+      font-size: 0.82rem;
+      color: var(--text-secondary);
+    }
+
+    .upload-text strong {
+      color: var(--text-primary);
+    }
+
+    .upload-hint {
+      font-size: 0.72rem;
+      color: var(--text-tertiary);
+    }
+
+    /* Audio Player Console */
+    .audio-console {
+      background: var(--bg-surface-2);
+      border: 1px solid var(--border-subtle);
+      border-radius: var(--radius-md);
+      padding: 14px 16px;
+      margin-bottom: 18px;
+    }
+
+    .audio-meta-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 10px;
+    }
+
+    .track-title {
+      font-size: 0.88rem;
+      font-weight: 600;
+      color: var(--text-primary);
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .track-title svg {
+      width: 14px !important;
+      height: 14px !important;
+    }
+
+    .track-format {
+      font-family: ui-monospace, monospace;
+      font-size: 0.7rem;
+      color: var(--text-tertiary);
+    }
+
+    .audio-controls-row {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .play-btn {
+      width: 38px;
+      height: 38px;
+      border-radius: var(--radius-sm);
+      background: var(--text-primary);
+      color: var(--bg-black);
+      border: none;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+      transition: transform 0.15s ease, background-color 0.15s ease;
+    }
+
+    .play-btn:hover {
+      background: #FFFFFF;
+      transform: scale(1.05);
+    }
+
+    .play-btn svg {
+      width: 16px !important;
+      height: 16px !important;
+      fill: currentColor;
+    }
+
+    .scrubber-container {
+      flex-grow: 1;
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+    }
+
+    .scrubber-bar {
+      width: 100%;
+      height: 6px;
+      background: rgba(255, 255, 255, 0.08);
+      border-radius: 999px;
+      position: relative;
+      cursor: pointer;
+    }
+
+    .scrubber-fill {
+      height: 100%;
+      width: 0%;
+      background: var(--accent-blue);
+      border-radius: 999px;
+      transition: width 0.1s linear;
+    }
+
+    .time-display {
+      display: flex;
+      justify-content: space-between;
+      font-family: ui-monospace, monospace;
+      font-size: 0.7rem;
+      color: var(--text-tertiary);
+    }
+
+    /* Waveform Canvas */
+    .canvas-box {
+      height: 74px;
+      background: #040508;
+      border: 1px solid var(--border-subtle);
+      border-radius: var(--radius-sm);
+      margin-bottom: 18px;
+      overflow: hidden;
+    }
+
+    #freqCanvas {
+      width: 100%;
+      height: 100%;
+      display: block;
+    }
+
+    /* Action Button */
+    .action-btn {
+      width: 100%;
+      background: var(--accent-blue);
+      color: #FFFFFF;
+      border: 1px solid rgba(255, 255, 255, 0.15);
+      padding: 13px 20px;
+      border-radius: var(--radius-sm);
+      font-family: inherit;
+      font-size: 0.92rem;
+      font-weight: 600;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      box-shadow: 0 0 24px rgba(59, 130, 246, 0.25);
+      transition: all 0.2s ease;
+    }
+
+    .action-btn svg {
+      width: 16px !important;
+      height: 16px !important;
+    }
+
+    .action-btn:hover {
+      background: #2563EB;
+      transform: translateY(-1px);
+    }
+
+    .action-btn:disabled {
+      opacity: 0.6;
+      cursor: not-allowed;
+      transform: none;
+    }
+
+    /* Right Panel Output */
+    .standby-state {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 44px 20px;
+      text-align: center;
+      border: 1px dashed var(--border-subtle);
+      border-radius: var(--radius-md);
+      margin-bottom: 20px;
+      background: rgba(255, 255, 255, 0.01);
+    }
+
+    .standby-icon {
+      width: 36px !important;
+      height: 36px !important;
+      color: var(--text-tertiary);
+      margin-bottom: 10px;
+    }
+
+    .standby-title {
+      font-size: 0.92rem;
+      font-weight: 600;
+      color: var(--text-secondary);
+      margin-bottom: 4px;
+    }
+
+    .standby-sub {
+      font-size: 0.78rem;
+      color: var(--text-tertiary);
+      max-width: 300px;
+    }
+
+    /* Execution Log Console */
+    .log-console {
+      display: none;
+      background: #040508;
+      border: 1px solid var(--border-subtle);
+      border-radius: var(--radius-md);
+      padding: 14px;
+      font-family: ui-monospace, monospace;
+      font-size: 0.75rem;
+      color: var(--accent-cyan);
+      margin-bottom: 20px;
+      min-height: 110px;
+    }
+
+    .log-line {
+      line-height: 1.7;
+      display: flex;
+      gap: 8px;
+    }
+
+    .log-line .ts {
+      color: var(--text-tertiary);
+    }
+
+    /* Verdict Banner */
+    .verdict-box {
+      display: none;
+      background: linear-gradient(180deg, rgba(59, 130, 246, 0.08) 0%, rgba(10, 12, 18, 0) 100%);
+      border: 1px solid rgba(59, 130, 246, 0.35);
+      border-radius: var(--radius-md);
+      padding: 20px;
+      text-align: center;
+      margin-bottom: 20px;
+    }
+
+    .verdict-kicker {
+      font-size: 0.72rem;
+      text-transform: uppercase;
+      letter-spacing: 0.1em;
+      color: var(--text-tertiary);
+      margin-bottom: 6px;
+    }
+
+    .verdict-title-text {
+      font-size: 2.3rem;
+      font-weight: 800;
+      letter-spacing: -0.02em;
+      color: var(--text-primary);
+      text-transform: uppercase;
+      margin-bottom: 6px;
+    }
+
+    .confidence-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      background: rgba(16, 185, 129, 0.12);
+      border: 1px solid rgba(16, 185, 129, 0.3);
+      color: var(--accent-emerald);
+      font-size: 0.8rem;
+      font-weight: 600;
+      font-family: ui-monospace, monospace;
+      padding: 3px 12px;
+      border-radius: 999px;
+    }
+
+    .confidence-badge svg {
+      width: 12px !important;
+      height: 12px !important;
+    }
+
+    /* Metrics Row */
+    .metrics-grid {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 8px;
+      margin-bottom: 20px;
+    }
+
+    @media (max-width: 500px) {
+      .metrics-grid {
+        grid-template-columns: repeat(2, 1fr);
+      }
+    }
+
+    .metric-card {
+      background: var(--bg-surface-2);
+      border: 1px solid var(--border-subtle);
+      border-radius: var(--radius-sm);
+      padding: 10px 8px;
+      text-align: center;
+    }
+
+    .metric-value {
+      font-family: ui-monospace, monospace;
+      font-size: 1rem;
+      font-weight: 700;
+      color: var(--text-primary);
+      margin-bottom: 2px;
+    }
+
+    .metric-label {
+      font-size: 0.68rem;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      color: var(--text-tertiary);
+    }
+
+    /* Softmax Bars */
+    .prob-title {
+      font-size: 0.75rem;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      color: var(--text-tertiary);
+      margin-bottom: 10px;
+    }
+
+    .prob-container {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+
+    .prob-entry {
+      display: flex;
+      flex-direction: column;
+      gap: 3px;
+    }
+
+    .prob-info {
+      display: flex;
+      justify-content: space-between;
+      font-size: 0.8rem;
+    }
+
+    .prob-name {
+      font-weight: 500;
+      color: var(--text-secondary);
+      text-transform: capitalize;
+    }
+
+    .prob-value {
+      font-family: ui-monospace, monospace;
+      font-size: 0.78rem;
+      color: var(--text-tertiary);
+    }
+
+    .prob-rail {
+      width: 100%;
+      height: 5px;
+      background: var(--bg-surface-3);
+      border-radius: 999px;
+      overflow: hidden;
+    }
+
+    .prob-fill {
+      height: 100%;
+      width: 0%;
+      background: var(--text-tertiary);
+      border-radius: 999px;
+      transition: width 0.6s cubic-bezier(0.16, 1, 0.3, 1), background-color 0.3s ease;
+    }
+
+    .prob-fill.active {
+      background: var(--accent-blue);
+      box-shadow: 0 0 8px var(--accent-blue);
+    }
+
+    /* Architecture Grid */
+    .arch-container {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 14px;
+      margin-top: 14px;
+    }
+
+    @media (max-width: 768px) {
+      .arch-container {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    .arch-tile {
+      background: var(--bg-surface-2);
+      border: 1px solid var(--border-subtle);
+      border-radius: var(--radius-md);
+      padding: 16px;
+    }
+
+    .arch-tile-title {
+      font-size: 0.85rem;
+      font-weight: 600;
+      color: var(--text-primary);
+      margin-bottom: 4px;
+      display: flex;
+      justify-content: space-between;
+    }
+
+    .arch-tile-meta {
+      font-family: ui-monospace, monospace;
+      font-size: 0.72rem;
+      color: var(--accent-blue);
+      margin-bottom: 6px;
+    }
+
+    .arch-tile-desc {
+      font-size: 0.8rem;
+      color: var(--text-tertiary);
+      line-height: 1.5;
+    }
+
+    /* Footer */
+    .page-footer {
+      margin-top: 40px;
+      padding-top: 20px;
+      border-top: 1px solid var(--border-subtle);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      font-size: 0.8rem;
+      color: var(--text-tertiary);
+      flex-wrap: wrap;
+      gap: 10px;
+    }
+
+    .footer-anchor {
+      color: var(--text-secondary);
+      text-decoration: none;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      transition: color 0.2s ease;
+    }
+
+    .footer-anchor svg {
+      width: 14px !important;
+      height: 14px !important;
+    }
+
+    .footer-anchor:hover {
+      color: var(--accent-blue);
+    }
+
+    .spin {
+      animation: spin 1s linear infinite;
+    }
+
+    @keyframes spin {
+      from { transform: rotate(0deg); }
+      to { transform: rotate(360deg); }
+    }
+  </style>
 </head>
 <body>
 
@@ -14,269 +759,253 @@
     
     <!-- Top Status Navigation -->
     <header class="top-nav">
-      <div class="brand-badge">
-        <span class="status-indicator"></span>
+      <div class="brand-pill">
+        <span class="status-dot"></span>
         <span>LSTM Acoustic Engine v2.4 &bull; Active</span>
       </div>
 
-      <div class="sys-info">
-        <span class="sys-tag">GTZAN Corpus</span>
-        <span class="sys-tag">103,816 Params</span>
-        <span class="sys-tag">8 Classes</span>
+      <div class="sys-specs">
+        <span class="spec-badge">GTZAN Corpus</span>
+        <span class="spec-badge">103,816 Weights</span>
+        <span class="spec-badge">8 Target Genres</span>
       </div>
     </header>
 
-    <!-- Project Header -->
+    <!-- Project Header (Zero personal names or batch details) -->
     <section class="hero-header">
       <h1 class="hero-title">Music Genre Classification</h1>
-      <p class="hero-desc">
-        Deep learning sequence modeling using a stacked 2-layer Recurrent Neural Network (LSTM). 
-        Processes 33-dimensional acoustic and spectral features across 128 temporal frames to classify audio tracks.
+      <p class="hero-subtitle">
+        Deep learning sequence modeling using stacked 2-layer Recurrent Neural Networks (LSTM). 
+        Extracts 33-dimensional temporal acoustic and spectral representations over 128 frames to classify audio files.
       </p>
-
-      <div class="team-strip">
-        <div class="member-tag">
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path><circle cx="12" cy="7" r="4"></circle></svg>
-          Group 25 &bull; Batch B23
-        </div>
-        <div class="member-tag">
-          Roll 125: <strong>Arzoo Vaswani</strong>
-        </div>
-        <div class="member-tag">
-          Roll 133: <strong>Riya Maurya</strong>
-        </div>
-        <div class="member-tag">
-          Roll 137: <strong>Junaid Shaikh</strong>
-        </div>
-      </div>
     </section>
 
     <!-- Workspace Main Grid -->
-    <main class="workspace-grid">
+    <main class="main-grid">
       
       <!-- Left Panel: Input & Audio Player Console -->
-      <section class="ui-card">
-        <div class="card-header">
-          <span class="card-title">
+      <section class="card-panel">
+        <div class="panel-header">
+          <span class="panel-title">
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"></polygon><path d="M19.07 4.93a10 10 0 0 1 0 14.14M15.54 8.46a5 5 0 0 1 0 7.07"></path></svg>
             Audio Input Console
           </span>
-          <span class="card-badge">INPUT_DIM: [1, 128, 33]</span>
+          <span class="panel-tag">SHAPE: [1, 128, 33]</span>
         </div>
 
-        <!-- Sample Genre Buttons -->
-        <div class="selector-label">Preloaded GTZAN Benchmark Samples</div>
+        <!-- Sample Genre Buttons with explicit width/height -->
+        <div class="section-label">Preloaded GTZAN Benchmark Samples</div>
         <div class="genre-grid">
           <button class="genre-btn active" data-genre="classical">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 18V5l12-2v13"></path><circle cx="6" cy="18" r="3"></circle><circle cx="18" cy="16" r="3"></circle></svg>
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 18V5l12-2v13"></path><circle cx="6" cy="18" r="3"></circle><circle cx="18" cy="16" r="3"></circle></svg>
             <span>Classical</span>
           </button>
           <button class="genre-btn" data-genre="jazz">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3Z"></path><path d="M19 10v2a7 7 0 0 1-14 0v-2"></path><line x1="12" x2="12" y1="19" y2="22"></line></svg>
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3Z"></path><path d="M19 10v2a7 7 0 0 1-14 0v-2"></path><line x1="12" x2="12" y1="19" y2="22"></line></svg>
             <span>Jazz</span>
           </button>
           <button class="genre-btn" data-genre="metal">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"></polygon></svg>
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"></polygon></svg>
             <span>Metal</span>
           </button>
           <button class="genre-btn" data-genre="pop">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"></polygon></svg>
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"></polygon></svg>
             <span>Pop</span>
           </button>
           <button class="genre-btn" data-genre="hiphop">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M2 10s3-3 5-3 5 3 5 3 3-3 5-3 5 3 5 3"></path><path d="M2 14s3-3 5-3 5 3 5 3 3-3 5-3 5 3 5 3"></path></svg>
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M2 10s3-3 5-3 5 3 5 3 3-3 5-3 5 3 5 3"></path><path d="M2 14s3-3 5-3 5 3 5 3 3-3 5-3 5 3 5 3"></path></svg>
             <span>Hip-Hop</span>
           </button>
           <button class="genre-btn" data-genre="reggae">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="5"></circle><line x1="12" y1="1" x2="12" y2="3"></line><line x1="12" y1="21" x2="12" y2="23"></line><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"></line><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"></line><line x1="1" y1="12" x2="3" y2="12"></line><line x1="21" y1="12" x2="23" y2="12"></line></svg>
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="5"></circle><line x1="12" y1="1" x2="12" y2="3"></line><line x1="12" y1="21" x2="12" y2="23"></line><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"></line><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"></line><line x1="1" y1="12" x2="3" y2="12"></line><line x1="21" y1="12" x2="23" y2="12"></line></svg>
             <span>Reggae</span>
           </button>
           <button class="genre-btn" data-genre="disco">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"></circle><circle cx="12" cy="12" r="3"></circle></svg>
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"></circle><circle cx="12" cy="12" r="3"></circle></svg>
             <span>Disco</span>
           </button>
           <button class="genre-btn" data-genre="country">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14.5 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7.5L14.5 2z"></path><polyline points="14 2 14 8 20 8"></polyline></svg>
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14.5 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7.5L14.5 2z"></path><polyline points="14 2 14 8 20 8"></polyline></svg>
             <span>Country</span>
           </button>
         </div>
 
-        <!-- Custom Upload Dropzone -->
+        <!-- Custom Upload Zone -->
         <input type="file" id="audioUploadInput" accept=".mp3,.wav,.ogg" style="display: none;">
-        <div class="dropzone" id="dropzoneBox">
-          <div class="dropzone-icon">
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="17 8 12 3 7 8"></polyline><line x1="12" y1="3" x2="12" y2="15"></line></svg>
+        <div class="upload-zone" id="dropzoneBox">
+          <div class="upload-icon">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="17 8 12 3 7 8"></polyline><line x1="12" y1="3" x2="12" y2="15"></line></svg>
           </div>
-          <div class="dropzone-text">
-            <div class="dropzone-main">Drop custom audio track or browse file</div>
-            <div class="dropzone-sub">Accepts MP3, WAV, OGG (22,050 Hz sampling)</div>
+          <div>
+            <div class="upload-text"><strong>Upload custom audio track</strong> or drag file here</div>
+            <div class="upload-hint">Supports MP3, WAV, OGG (22,050 Hz sampling)</div>
           </div>
         </div>
 
         <!-- Dedicated Audio Player Console -->
         <div class="audio-console">
           <div class="audio-meta-row">
-            <span class="audio-track-title" id="trackTitleDisplay">
+            <span class="track-title">
               <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#3B82F6" stroke-width="2"><path d="M9 18V5l12-2v13"></path><circle cx="6" cy="18" r="3"></circle><circle cx="18" cy="16" r="3"></circle></svg>
               <span id="trackLabel">classical_music.mp3</span>
             </span>
-            <span class="audio-track-format">22.05 kHz &bull; 16-BIT MONO</span>
+            <span class="track-format">22.05 kHz &bull; MONO</span>
           </div>
 
           <div class="audio-controls-row">
-            <button class="play-pause-btn" id="playPauseBtn" title="Play / Pause Audio">
-              <svg id="playIcon" viewBox="0 0 24 24"><polygon points="5 3 19 12 5 21 5 3"></polygon></svg>
-              <svg id="pauseIcon" viewBox="0 0 24 24" style="display: none;"><rect x="6" y="4" width="4" height="16"></rect><rect x="14" y="4" width="4" height="16"></rect></svg>
+            <button class="play-btn" id="playPauseBtn" title="Play / Pause Audio">
+              <svg id="playIcon" width="16" height="16" viewBox="0 0 24 24"><polygon points="5 3 19 12 5 21 5 3"></polygon></svg>
+              <svg id="pauseIcon" width="16" height="16" viewBox="0 0 24 24" style="display: none;"><rect x="6" y="4" width="4" height="16"></rect><rect x="14" y="4" width="4" height="16"></rect></svg>
             </button>
 
-            <div class="waveform-scrubber-box">
-              <div class="scrubber-track" id="scrubberTrack">
+            <div class="scrubber-container">
+              <div class="scrubber-bar" id="scrubberTrack">
                 <div class="scrubber-fill" id="scrubberFill"></div>
               </div>
-              <div class="scrubber-time">
+              <div class="time-display">
                 <span id="currentTimeLabel">0:00</span>
                 <span id="durationLabel">0:30</span>
               </div>
             </div>
           </div>
 
-          <!-- Hidden Native Audio for 100% Reliable Playback -->
+          <!-- Hidden Native Audio for 100% Guaranteed Audio Playback -->
           <audio id="nativeAudioPlayer" preload="auto"></audio>
         </div>
 
-        <!-- Visualizer Canvas -->
-        <div class="canvas-wrapper">
+        <!-- Waveform Canvas -->
+        <div class="canvas-box">
           <canvas id="freqCanvas"></canvas>
         </div>
 
-        <!-- Primary Action Button -->
-        <button class="execute-btn" id="executeModelBtn">
-          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="5 3 19 12 5 21 5 3"></polygon></svg>
+        <!-- Action Button -->
+        <button class="action-btn" id="executeModelBtn">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="5 3 19 12 5 21 5 3"></polygon></svg>
           Execute LSTM Model
         </button>
       </section>
 
-      <!-- Right Panel: Inference & Softmax Distribution -->
-      <section class="ui-card">
-        <div class="card-header">
-          <span class="card-title">
+      <!-- Right Panel: Inference & Softmax Telemetry -->
+      <section class="card-panel">
+        <div class="panel-header">
+          <span class="panel-title">
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="4" y="4" width="16" height="16" rx="2" ry="2"></rect><rect x="9" y="9" width="6" height="6"></rect><line x1="9" y1="1" x2="9" y2="4"></line><line x1="15" y1="1" x2="15" y2="4"></line><line x1="9" y1="20" x2="9" y2="23"></line><line x1="15" y1="20" x2="15" y2="23"></line><line x1="20" y1="9" x2="23" y2="9"></line><line x1="20" y1="14" x2="23" y2="14"></line><line x1="1" y1="9" x2="4" y1="9"></line><line x1="1" y1="14" x2="4" y1="14"></line></svg>
             Inference Telemetry
           </span>
-          <span class="card-badge" id="telemetryState">STATUS: STANDBY</span>
+          <span class="panel-tag" id="telemetryState">STANDBY</span>
         </div>
 
-        <!-- 1. Idle State: Shown Before Execution -->
-        <div class="idle-placeholder" id="idlePlaceholder">
-          <svg class="idle-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+        <!-- 1. Idle State: Cleanly shown before execution -->
+        <div class="standby-state" id="idlePlaceholder">
+          <svg class="standby-icon" width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
             <circle cx="12" cy="12" r="10"></circle>
             <polyline points="12 6 12 12 16 14"></polyline>
           </svg>
-          <div class="idle-text">Model Awaiting Execution</div>
-          <p class="idle-sub">Select an audio sample or upload a track, then click <strong>"Execute LSTM Model"</strong> to extract acoustic features and perform inference.</p>
+          <div class="standby-title">Model Awaiting Execution</div>
+          <p class="standby-sub">Select an audio track and click <strong>"Execute LSTM Model"</strong> to extract acoustic features and run the recurrent neural network.</p>
         </div>
 
-        <!-- 2. Execution Terminal Console: Shown During Forward Pass -->
-        <div class="execution-console" id="executionConsole"></div>
+        <!-- 2. Execution Terminal Console -->
+        <div class="log-console" id="executionConsole"></div>
 
-        <!-- 3. Verdict Hero: Shown Only After Inference Completes -->
-        <div class="verdict-hero" id="verdictHero">
-          <div class="verdict-header">Top Classified Genre</div>
-          <div class="verdict-genre-name" id="verdictGenreText">CLASSICAL</div>
+        <!-- 3. Verdict Hero: Shown only AFTER execution -->
+        <div class="verdict-box" id="verdictHero">
+          <div class="verdict-kicker">Predicted Music Genre</div>
+          <div class="verdict-title-text" id="verdictGenreText">CLASSICAL</div>
           <div>
-            <span class="confidence-pill" id="verdictConfidenceBadge">
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="20 6 9 17 4 12"></polyline></svg>
+            <span class="confidence-badge">
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="20 6 9 17 4 12"></polyline></svg>
               <span id="verdictConfidenceText">94.2% Confidence</span>
             </span>
           </div>
         </div>
 
         <!-- Metrics Grid -->
-        <div class="metrics-row">
-          <div class="metric-cell">
-            <div class="metric-val" id="metricLatency">-- ms</div>
-            <div class="metric-lbl">Inference Time</div>
+        <div class="metrics-grid">
+          <div class="metric-card">
+            <div class="metric-value" id="metricLatency">-- ms</div>
+            <div class="metric-label">Inference Time</div>
           </div>
-          <div class="metric-cell">
-            <div class="metric-val" id="metricFrames">128</div>
-            <div class="metric-lbl">Time Steps</div>
+          <div class="metric-card">
+            <div class="metric-value" id="metricFrames">128</div>
+            <div class="metric-label">Time Steps</div>
           </div>
-          <div class="metric-cell">
-            <div class="metric-val" id="metricDims">33</div>
-            <div class="metric-lbl">Feature Dims</div>
+          <div class="metric-card">
+            <div class="metric-value" id="metricDims">33</div>
+            <div class="metric-label">Feature Dims</div>
           </div>
-          <div class="metric-cell">
-            <div class="metric-val" id="metricCentroid">-- Hz</div>
-            <div class="metric-lbl">Spectral Centroid</div>
+          <div class="metric-card">
+            <div class="metric-value" id="metricCentroid">-- Hz</div>
+            <div class="metric-label">Spectral Centroid</div>
           </div>
         </div>
 
         <!-- Softmax Class Probabilities -->
-        <div class="prob-section-title">Softmax Output Vector [8 Classes]</div>
+        <div class="prob-title">Softmax Probability Vector [8 Classes]</div>
         
-        <div class="prob-stack" id="probStack">
-          <div class="prob-row" data-genre="classical">
-            <div class="prob-meta">
-              <span class="prob-genre">Classical</span>
-              <span class="prob-pct" id="pct-classical">--%</span>
+        <div class="prob-container" id="probStack">
+          <div class="prob-entry" data-genre="classical">
+            <div class="prob-info">
+              <span class="prob-name">Classical</span>
+              <span class="prob-value" id="pct-classical">--%</span>
             </div>
-            <div class="track-line"><div class="fill-line" id="bar-classical"></div></div>
+            <div class="prob-rail"><div class="prob-fill" id="bar-classical"></div></div>
           </div>
 
-          <div class="prob-row" data-genre="jazz">
-            <div class="prob-meta">
-              <span class="prob-genre">Jazz</span>
-              <span class="prob-pct" id="pct-jazz">--%</span>
+          <div class="prob-entry" data-genre="jazz">
+            <div class="prob-info">
+              <span class="prob-name">Jazz</span>
+              <span class="prob-value" id="pct-jazz">--%</span>
             </div>
-            <div class="track-line"><div class="fill-line" id="bar-jazz"></div></div>
+            <div class="prob-rail"><div class="prob-fill" id="bar-jazz"></div></div>
           </div>
 
-          <div class="prob-row" data-genre="country">
-            <div class="prob-meta">
-              <span class="prob-genre">Country</span>
-              <span class="prob-pct" id="pct-country">--%</span>
+          <div class="prob-entry" data-genre="country">
+            <div class="prob-info">
+              <span class="prob-name">Country</span>
+              <span class="prob-value" id="pct-country">--%</span>
             </div>
-            <div class="track-line"><div class="fill-line" id="bar-country"></div></div>
+            <div class="prob-rail"><div class="prob-fill" id="bar-country"></div></div>
           </div>
 
-          <div class="prob-row" data-genre="hiphop">
-            <div class="prob-meta">
-              <span class="prob-genre">Hip-Hop</span>
-              <span class="prob-pct" id="pct-hiphop">--%</span>
+          <div class="prob-entry" data-genre="hiphop">
+            <div class="prob-info">
+              <span class="prob-name">Hip-Hop</span>
+              <span class="prob-value" id="pct-hiphop">--%</span>
             </div>
-            <div class="track-line"><div class="fill-line" id="bar-hiphop"></div></div>
+            <div class="prob-rail"><div class="prob-fill" id="bar-hiphop"></div></div>
           </div>
 
-          <div class="prob-row" data-genre="pop">
-            <div class="prob-meta">
-              <span class="prob-genre">Pop</span>
-              <span class="prob-pct" id="pct-pop">--%</span>
+          <div class="prob-entry" data-genre="pop">
+            <div class="prob-info">
+              <span class="prob-name">Pop</span>
+              <span class="prob-value" id="pct-pop">--%</span>
             </div>
-            <div class="track-line"><div class="fill-line" id="bar-pop"></div></div>
+            <div class="prob-rail"><div class="prob-fill" id="bar-pop"></div></div>
           </div>
 
-          <div class="prob-row" data-genre="disco">
-            <div class="prob-meta">
-              <span class="prob-genre">Disco</span>
-              <span class="prob-pct" id="pct-disco">--%</span>
+          <div class="prob-entry" data-genre="disco">
+            <div class="prob-info">
+              <span class="prob-name">Disco</span>
+              <span class="prob-value" id="pct-disco">--%</span>
             </div>
-            <div class="track-line"><div class="fill-line" id="bar-disco"></div></div>
+            <div class="prob-rail"><div class="prob-fill" id="bar-disco"></div></div>
           </div>
 
-          <div class="prob-row" data-genre="reggae">
-            <div class="prob-meta">
-              <span class="prob-genre">Reggae</span>
-              <span class="prob-pct" id="pct-reggae">--%</span>
+          <div class="prob-entry" data-genre="reggae">
+            <div class="prob-info">
+              <span class="prob-name">Reggae</span>
+              <span class="prob-value" id="pct-reggae">--%</span>
             </div>
-            <div class="track-line"><div class="fill-line" id="bar-reggae"></div></div>
+            <div class="prob-rail"><div class="prob-fill" id="bar-reggae"></div></div>
           </div>
 
-          <div class="prob-row" data-genre="metal">
-            <div class="prob-meta">
-              <span class="prob-genre">Metal</span>
-              <span class="prob-pct" id="pct-metal">--%</span>
+          <div class="prob-entry" data-genre="metal">
+            <div class="prob-info">
+              <span class="prob-name">Metal</span>
+              <span class="prob-value" id="pct-metal">--%</span>
             </div>
-            <div class="track-line"><div class="fill-line" id="bar-metal"></div></div>
+            <div class="prob-rail"><div class="prob-fill" id="bar-metal"></div></div>
           </div>
         </div>
 
@@ -284,62 +1013,62 @@
 
     </main>
 
-    <!-- Technical Architecture & Dataset Overview -->
-    <section class="ui-card tech-section">
-      <div class="card-header">
-        <span class="card-title">
+    <!-- Technical Specs: Architecture & Features -->
+    <section class="card-panel" style="margin-top: 10px;">
+      <div class="panel-header">
+        <span class="panel-title">
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"></polyline></svg>
-          Model Architecture & Acoustic Feature Breakdown
+          Deep Learning Architecture & Feature Representations
         </span>
-        <span class="card-badge">TOTAL_WEIGHTS: 103,816</span>
+        <span class="panel-tag">TOTAL_WEIGHTS: 103,816</span>
       </div>
 
-      <div class="tech-grid">
-        <div class="tech-card">
-          <div class="tech-card-header">
+      <div class="arch-container">
+        <div class="arch-tile">
+          <div class="arch-tile-title">
             <span>Acoustic Features (33-Dim)</span>
             <span>Librosa</span>
           </div>
-          <div class="tech-card-meta">13 MFCC + 1 Centroid + 12 Chroma + 7 Contrast</div>
-          <p class="tech-card-body">
-            Extracted with hop_length=512 at 22.05 kHz. Formats audio into 128 sequential frames capturing harmonic, timbral, and dynamic energy variance over time.
+          <div class="arch-tile-meta">13 MFCC + 1 Centroid + 12 Chroma + 7 Contrast</div>
+          <p class="arch-tile-desc">
+            Extracted with hop_length=512 at 22,050 Hz. Captures sequential timbral, harmonic, and dynamic energy variance across 128 frames.
           </p>
         </div>
 
-        <div class="tech-card">
-          <div class="tech-card-header">
+        <div class="arch-tile">
+          <div class="arch-tile-title">
             <span>Stacked 2-Layer LSTM</span>
             <span>PyTorch / Keras</span>
           </div>
-          <div class="tech-card-meta">103,552 Recurrent Params</div>
-          <p class="tech-card-body">
+          <div class="arch-tile-meta">103,552 Recurrent Params</div>
+          <p class="arch-tile-desc">
             Layer 1: 128 units (return_sequences=True, rec_dropout=0.35).<br>
             Layer 2: 32 units (return_sequences=False). Retains long-term temporal musical context across time steps.
           </p>
         </div>
 
-        <div class="tech-card">
-          <div class="tech-card-header">
+        <div class="arch-tile">
+          <div class="arch-tile-title">
             <span>Dense Softmax Classifier</span>
             <span>8 Output Units</span>
           </div>
-          <div class="tech-card-meta">Epoch 400 Benchmark: 87.38% Acc</div>
-          <p class="tech-card-body">
-            Maps the 32-dimensional final hidden state vector to a normalized multi-class probability distribution across all 8 GTZAN target genres.
+          <div class="arch-tile-meta">Epoch 400 Benchmark: 87.38% Acc</div>
+          <p class="arch-tile-desc">
+            Transforms the 32-dimensional final hidden state into a normalized multi-class probability distribution over all 8 genres.
           </p>
         </div>
       </div>
     </section>
 
-    <!-- Site Footer -->
-    <footer class="site-footer">
+    <!-- Site Footer with GitHub Profile & Repository Links -->
+    <footer class="page-footer">
       <div>
-        Deep Learning Mini Project &bull; Group 25 (Batch B23)
+        Deep Learning Mini Project &bull; Music Genre Classification
       </div>
       <div>
-        <a href="https://github.com/Ken-Kanike/DL-Mini-Project" target="_blank" rel="noopener" class="footer-link">
+        <a href="https://github.com/Ken-Kanike/DL-Mini-Project" target="_blank" rel="noopener" class="footer-anchor">
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 19c-5 1.5-5-2.5-7-3m14 6v-3.87a3.37 3.37 0 0 0-.94-2.61c3.14-.35 6.44-1.54 6.44-7A5.44 5.44 0 0 0 20 4.77 5.07 5.07 0 0 0 19.91 1S18.73.65 16 2.48a13.38 13.38 0 0 0-7 0C6.27.65 5.09 1 5.09 1A5.07 5.07 0 0 0 5 4.77a5.44 5.44 0 0 0-1.5 3.78c0 5.42 3.3 6.61 6.44 7A3.37 3.37 0 0 0 9 18.13V22"></path></svg>
-          Ken-Kanike/DL-Mini-Project
+          github.com/Ken-Kanike
         </a>
       </div>
     </footer>
