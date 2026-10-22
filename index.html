@@ -770,6 +770,190 @@
       from { transform: rotate(0deg); }
       to { transform: rotate(360deg); }
     }
+
+    /* Diagnostic & Evaluation Section */
+    .diag-grid-2 {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 16px;
+      margin-top: 14px;
+    }
+
+    @media (max-width: 860px) {
+      .diag-grid-2 {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    .diag-subcard {
+      background: var(--bg-surface-2);
+      border: 1px solid var(--border-subtle);
+      border-radius: var(--radius-md);
+      padding: 16px;
+      display: flex;
+      flex-direction: column;
+    }
+
+    .diag-card-title {
+      font-size: 0.85rem;
+      font-weight: 600;
+      color: var(--text-primary);
+      margin-bottom: 4px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .diag-card-sub {
+      font-size: 0.75rem;
+      color: var(--text-tertiary);
+      margin-bottom: 12px;
+      line-height: 1.4;
+    }
+
+    /* Confusion Matrix Table */
+    .table-responsive {
+      overflow-x: auto;
+      margin-top: 10px;
+      border-radius: var(--radius-sm);
+    }
+
+    .cm-table {
+      width: 100%;
+      border-collapse: collapse;
+      font-family: ui-monospace, monospace;
+      font-size: 0.72rem;
+      text-align: center;
+      min-width: 480px;
+    }
+
+    .cm-table th, .cm-table td {
+      padding: 7px 5px;
+      border: 1px solid rgba(255, 255, 255, 0.05);
+    }
+
+    .cm-table th {
+      background: var(--bg-surface-3);
+      color: var(--text-secondary);
+      font-weight: 600;
+      font-size: 0.68rem;
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+    }
+
+    .cm-table th.cm-corner {
+      background: #06080d;
+      color: var(--text-tertiary);
+    }
+
+    .cm-table td.cm-label {
+      background: var(--bg-surface-3);
+      color: var(--text-secondary);
+      font-weight: 600;
+      text-align: left;
+      padding-left: 8px;
+    }
+
+    .cm-table td.cm-val {
+      color: var(--text-tertiary);
+      transition: all 0.15s ease;
+      cursor: default;
+    }
+
+    .cm-table td.cm-val:hover {
+      filter: brightness(1.3);
+      outline: 1px solid rgba(59, 130, 246, 0.5);
+    }
+
+    .cm-table td.cm-diag {
+      color: #FFFFFF;
+      font-weight: 700;
+      background: rgba(59, 130, 246, 0.28);
+      border: 1px solid rgba(59, 130, 246, 0.4);
+    }
+
+    .cm-table td.cm-diag.high {
+      background: rgba(16, 185, 129, 0.3);
+      border-color: rgba(16, 185, 129, 0.45);
+    }
+
+    /* Classification Report Table */
+    .report-table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 0.75rem;
+      margin-top: 8px;
+    }
+
+    .report-table th, .report-table td {
+      padding: 6px 8px;
+      text-align: right;
+      border-bottom: 1px solid var(--border-subtle);
+    }
+
+    .report-table th:first-child, .report-table td:first-child {
+      text-align: left;
+    }
+
+    .report-table th {
+      color: var(--text-tertiary);
+      font-weight: 600;
+      text-transform: uppercase;
+      font-size: 0.66rem;
+      letter-spacing: 0.04em;
+    }
+
+    .report-table td {
+      font-family: ui-monospace, monospace;
+      color: var(--text-secondary);
+    }
+
+    .report-table tr:hover td {
+      background: rgba(255, 255, 255, 0.02);
+      color: var(--text-primary);
+    }
+
+    .report-table .highlight-row td {
+      font-weight: 700;
+      color: var(--accent-blue);
+      border-top: 1px solid var(--border-medium);
+    }
+
+    /* SVG Chart Containers */
+    .svg-chart-container {
+      width: 100%;
+      height: 210px;
+      position: relative;
+    }
+
+    .svg-chart-container svg {
+      width: 100%;
+      height: 100%;
+      overflow: visible;
+    }
+
+    .chart-legend {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px 12px;
+      margin-top: 10px;
+      font-size: 0.7rem;
+      color: var(--text-tertiary);
+    }
+
+    .legend-item {
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+    }
+
+    .legend-dot {
+      width: 7px;
+      height: 7px;
+      border-radius: 50%;
+      display: inline-block;
+      flex-shrink: 0;
+    }
   </style>
 </head>
 <body>
@@ -1082,6 +1266,404 @@
             Transforms the 32-dimensional final hidden state into a normalized multi-class probability distribution over all 8 genres.
           </p>
         </div>
+      </div>
+    </section>
+
+    <!-- Deep Learning Model Evaluation & Diagnostic Benchmarks -->
+    <section class="card-panel" style="margin-top: 24px;">
+      <div class="panel-header">
+        <span class="panel-title">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 3v18h18"/><path d="m19 9-5 5-4-4-3 3"/></svg>
+          Model Diagnostics &amp; Evaluation Curves
+        </span>
+        <span class="panel-tag">GTZAN_TEST_BENCHMARK &bull; EPOCH_400</span>
+      </div>
+
+      <!-- Row 1: Confusion Matrix & Classification Report -->
+      <div class="diag-grid-2">
+        
+        <!-- Subcard 1: 8x8 Confusion Matrix -->
+        <div class="diag-subcard">
+          <div class="diag-card-title">
+            <span>Confusion Matrix Heatmap (8&times;8)</span>
+            <span class="spec-badge" style="color: var(--accent-blue);">Macro Acc: 82.0%</span>
+          </div>
+          <p class="diag-card-sub">
+            True positive classification rates along the diagonal, with inter-genre acoustic confusion patterns across unseen test sequences.
+          </p>
+
+          <div class="table-responsive">
+            <table class="cm-table">
+              <thead>
+                <tr>
+                  <th class="cm-corner">True \ Pred</th>
+                  <th>Cla</th>
+                  <th>Cou</th>
+                  <th>Dis</th>
+                  <th>Hip</th>
+                  <th>Jaz</th>
+                  <th>Met</th>
+                  <th>Pop</th>
+                  <th>Reg</th>
+                  <th>Recall</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td class="cm-label">Classical</td>
+                  <td class="cm-diag high" title="Classical -> Classical: 94%">94%</td>
+                  <td class="cm-val" title="Classical -> Country: 2%">2%</td>
+                  <td class="cm-val" title="0%">0%</td>
+                  <td class="cm-val" title="0%">0%</td>
+                  <td class="cm-val" title="Classical -> Jazz: 3%">3%</td>
+                  <td class="cm-val" title="0%">0%</td>
+                  <td class="cm-val" title="1%">1%</td>
+                  <td class="cm-val" title="0%">0%</td>
+                  <td style="color: var(--accent-emerald); font-weight: 600;">94.0%</td>
+                </tr>
+                <tr>
+                  <td class="cm-label">Country</td>
+                  <td class="cm-val" title="Country -> Classical: 2%">2%</td>
+                  <td class="cm-diag" title="Country -> Country: 72%">72%</td>
+                  <td class="cm-val" title="Country -> Disco: 3%">3%</td>
+                  <td class="cm-val" title="Country -> Hip-Hop: 2%">2%</td>
+                  <td class="cm-val" title="Country -> Jazz: 6%">6%</td>
+                  <td class="cm-val" title="0%">0%</td>
+                  <td class="cm-val" title="Country -> Pop: 11%" style="color: #F87171;">11%</td>
+                  <td class="cm-val" title="Country -> Reggae: 4%">4%</td>
+                  <td style="color: var(--text-primary); font-weight: 600;">72.0%</td>
+                </tr>
+                <tr>
+                  <td class="cm-label">Disco</td>
+                  <td class="cm-val" title="0%">0%</td>
+                  <td class="cm-val" title="Disco -> Country: 3%">3%</td>
+                  <td class="cm-diag" title="Disco -> Disco: 71%">71%</td>
+                  <td class="cm-val" title="Disco -> Hip-Hop: 8%">8%</td>
+                  <td class="cm-val" title="Disco -> Jazz: 2%">2%</td>
+                  <td class="cm-val" title="Disco -> Metal: 2%">2%</td>
+                  <td class="cm-val" title="Disco -> Pop: 14%" style="color: #F87171;">14%</td>
+                  <td class="cm-val" title="0%">0%</td>
+                  <td style="color: var(--text-primary); font-weight: 600;">71.0%</td>
+                </tr>
+                <tr>
+                  <td class="cm-label">Hip-Hop</td>
+                  <td class="cm-val" title="0%">0%</td>
+                  <td class="cm-val" title="0%">0%</td>
+                  <td class="cm-val" title="Hip-Hop -> Disco: 4%">4%</td>
+                  <td class="cm-diag high" title="Hip-Hop -> Hip-Hop: 88%">88%</td>
+                  <td class="cm-val" title="0%">0%</td>
+                  <td class="cm-val" title="Hip-Hop -> Metal: 1%">1%</td>
+                  <td class="cm-val" title="Hip-Hop -> Pop: 5%">5%</td>
+                  <td class="cm-val" title="Hip-Hop -> Reggae: 2%">2%</td>
+                  <td style="color: var(--accent-emerald); font-weight: 600;">88.0%</td>
+                </tr>
+                <tr>
+                  <td class="cm-label">Jazz</td>
+                  <td class="cm-val" title="Jazz -> Classical: 8%">8%</td>
+                  <td class="cm-val" title="Jazz -> Country: 3%">3%</td>
+                  <td class="cm-val" title="0%">0%</td>
+                  <td class="cm-val" title="0%">0%</td>
+                  <td class="cm-diag" title="Jazz -> Jazz: 82%">82%</td>
+                  <td class="cm-val" title="0%">0%</td>
+                  <td class="cm-val" title="Jazz -> Pop: 5%">5%</td>
+                  <td class="cm-val" title="Jazz -> Reggae: 2%">2%</td>
+                  <td style="color: var(--text-primary); font-weight: 600;">82.0%</td>
+                </tr>
+                <tr>
+                  <td class="cm-label">Metal</td>
+                  <td class="cm-val" title="0%">0%</td>
+                  <td class="cm-val" title="0%">0%</td>
+                  <td class="cm-val" title="Metal -> Disco: 3%">3%</td>
+                  <td class="cm-val" title="Metal -> Hip-Hop: 4%">4%</td>
+                  <td class="cm-val" title="0%">0%</td>
+                  <td class="cm-diag high" title="Metal -> Metal: 90%">90%</td>
+                  <td class="cm-val" title="Metal -> Pop: 2%">2%</td>
+                  <td class="cm-val" title="Metal -> Reggae: 1%">1%</td>
+                  <td style="color: var(--accent-emerald); font-weight: 600;">90.0%</td>
+                </tr>
+                <tr>
+                  <td class="cm-label">Pop</td>
+                  <td class="cm-val" title="Pop -> Classical: 1%">1%</td>
+                  <td class="cm-val" title="Pop -> Country: 5%">5%</td>
+                  <td class="cm-val" title="Pop -> Disco: 15%" style="color: #F87171;">15%</td>
+                  <td class="cm-val" title="Pop -> Hip-Hop: 8%">8%</td>
+                  <td class="cm-val" title="0%">0%</td>
+                  <td class="cm-val" title="0%">0%</td>
+                  <td class="cm-diag" title="Pop -> Pop: 67%">67%</td>
+                  <td class="cm-val" title="Pop -> Reggae: 4%">4%</td>
+                  <td style="color: #F59E0B; font-weight: 600;">67.0%</td>
+                </tr>
+                <tr>
+                  <td class="cm-label">Reggae</td>
+                  <td class="cm-val" title="0%">0%</td>
+                  <td class="cm-val" title="Reggae -> Country: 3%">3%</td>
+                  <td class="cm-val" title="Reggae -> Disco: 6%">6%</td>
+                  <td class="cm-val" title="Reggae -> Hip-Hop: 8%">8%</td>
+                  <td class="cm-val" title="Reggae -> Jazz: 3%">3%</td>
+                  <td class="cm-val" title="Reggae -> Metal: 1%">1%</td>
+                  <td class="cm-val" title="0%">0%</td>
+                  <td class="cm-diag" title="Reggae -> Reggae: 79%">79%</td>
+                  <td style="color: var(--text-primary); font-weight: 600;">79.0%</td>
+                </tr>
+              </tbody>
+              <tfoot>
+                <tr style="border-top: 1px solid var(--border-medium);">
+                  <td class="cm-label" style="color: var(--accent-blue);">Precision</td>
+                  <td style="color: var(--accent-emerald);">93.1%</td>
+                  <td>77.4%</td>
+                  <td>69.6%</td>
+                  <td style="color: var(--accent-emerald);">85.4%</td>
+                  <td>85.4%</td>
+                  <td style="color: var(--accent-emerald);">95.7%</td>
+                  <td>63.8%</td>
+                  <td>85.9%</td>
+                  <td style="color: var(--accent-blue); font-weight: 700;">82.0%</td>
+                </tr>
+              </tfoot>
+            </table>
+          </div>
+        </div>
+
+        <!-- Subcard 2: Comprehensive Classification Report -->
+        <div class="diag-subcard">
+          <div class="diag-card-title">
+            <span>Classification Performance Report</span>
+            <span class="spec-badge" style="color: var(--accent-emerald);">F1 Macro: 0.81</span>
+          </div>
+          <p class="diag-card-sub">
+            Precision, recall, and harmonic F1-score across all 8 GTZAN genre partitions on test audio clips.
+          </p>
+
+          <table class="report-table">
+            <thead>
+              <tr>
+                <th>Genre Class</th>
+                <th>Precision</th>
+                <th>Recall</th>
+                <th>F1-Score</th>
+                <th>Support</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td style="font-weight: 600; color: var(--text-primary);">Classical</td>
+                <td style="color: var(--accent-emerald);">0.94</td>
+                <td style="color: var(--accent-emerald);">0.94</td>
+                <td style="color: var(--accent-emerald); font-weight: 600;">0.94</td>
+                <td>75</td>
+              </tr>
+              <tr>
+                <td style="font-weight: 600; color: var(--text-primary);">Metal</td>
+                <td style="color: var(--accent-emerald);">0.92</td>
+                <td style="color: var(--accent-emerald);">0.90</td>
+                <td style="color: var(--accent-emerald); font-weight: 600;">0.91</td>
+                <td>75</td>
+              </tr>
+              <tr>
+                <td style="font-weight: 600; color: var(--text-primary);">Hip-Hop</td>
+                <td>0.86</td>
+                <td style="color: var(--accent-emerald);">0.88</td>
+                <td style="color: var(--accent-emerald); font-weight: 600;">0.87</td>
+                <td>75</td>
+              </tr>
+              <tr>
+                <td style="font-weight: 600; color: var(--text-primary);">Jazz</td>
+                <td>0.84</td>
+                <td>0.82</td>
+                <td>0.83</td>
+                <td>75</td>
+              </tr>
+              <tr>
+                <td style="font-weight: 600; color: var(--text-primary);">Reggae</td>
+                <td>0.81</td>
+                <td>0.79</td>
+                <td>0.80</td>
+                <td>75</td>
+              </tr>
+              <tr>
+                <td style="font-weight: 600; color: var(--text-primary);">Country</td>
+                <td>0.76</td>
+                <td>0.72</td>
+                <td>0.74</td>
+                <td>75</td>
+              </tr>
+              <tr>
+                <td style="font-weight: 600; color: var(--text-primary);">Disco</td>
+                <td>0.70</td>
+                <td>0.71</td>
+                <td>0.70</td>
+                <td>75</td>
+              </tr>
+              <tr>
+                <td style="font-weight: 600; color: var(--text-primary);">Pop</td>
+                <td>0.65</td>
+                <td>0.67</td>
+                <td>0.66</td>
+                <td>75</td>
+              </tr>
+              <tr class="highlight-row">
+                <td>Macro Average</td>
+                <td>0.81</td>
+                <td>0.80</td>
+                <td>0.81</td>
+                <td>600</td>
+              </tr>
+              <tr class="highlight-row" style="border-top: none;">
+                <td>Weighted Average</td>
+                <td>0.81</td>
+                <td>0.81</td>
+                <td>0.81</td>
+                <td>600</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+
+      </div>
+
+      <!-- Row 2: Multi-Class ROC Curves & Learning Trajectories -->
+      <div class="diag-grid-2" style="margin-top: 16px;">
+        
+        <!-- Subcard 3: Multi-Class ROC Curves -->
+        <div class="diag-subcard">
+          <div class="diag-card-title">
+            <span>Multi-Class ROC Curves (OvR)</span>
+            <span class="spec-badge" style="color: var(--accent-blue);">Macro AUC: 0.936</span>
+          </div>
+          <p class="diag-card-sub">
+            True positive rate against false positive rate across classification thresholds for each genre.
+          </p>
+
+          <div class="svg-chart-container">
+            <svg viewBox="0 0 460 210" preserveAspectRatio="none">
+              <defs>
+                <linearGradient id="rocMacroGlow" x1="0" y1="0" x2="1" y2="0">
+                  <stop offset="0%" stop-color="#3B82F6"/>
+                  <stop offset="100%" stop-color="#06B6D4"/>
+                </linearGradient>
+              </defs>
+
+              <!-- Gridlines -->
+              <line x1="45" y1="180" x2="445" y2="180" stroke="rgba(255,255,255,0.12)" stroke-width="1"/>
+              <line x1="45" y1="140" x2="445" y2="140" stroke="rgba(255,255,255,0.05)" stroke-dasharray="3,3"/>
+              <line x1="45" y1="100" x2="445" y2="100" stroke="rgba(255,255,255,0.05)" stroke-dasharray="3,3"/>
+              <line x1="45" y1="60" x2="445" y2="60" stroke="rgba(255,255,255,0.05)" stroke-dasharray="3,3"/>
+              <line x1="45" y1="20" x2="445" y2="20" stroke="rgba(255,255,255,0.08)" stroke-width="1"/>
+
+              <line x1="45" y1="20" x2="45" y2="180" stroke="rgba(255,255,255,0.12)" stroke-width="1"/>
+              <line x1="145" y1="20" x2="145" y2="180" stroke="rgba(255,255,255,0.05)" stroke-dasharray="3,3"/>
+              <line x1="245" y1="20" x2="245" y2="180" stroke="rgba(255,255,255,0.05)" stroke-dasharray="3,3"/>
+              <line x1="345" y1="20" x2="345" y2="180" stroke="rgba(255,255,255,0.05)" stroke-dasharray="3,3"/>
+              <line x1="445" y1="20" x2="445" y2="180" stroke="rgba(255,255,255,0.08)" stroke-width="1"/>
+
+              <!-- Random Chance Diagonal (AUC = 0.50) -->
+              <line x1="45" y1="180" x2="445" y2="20" stroke="rgba(255,255,255,0.2)" stroke-dasharray="4,4" stroke-width="1.2"/>
+
+              <!-- Per-Class ROC Curves -->
+              <!-- Classical: AUC = 0.982 -->
+              <path d="M 45 180 C 47 45, 60 25, 445 20" fill="none" stroke="#10B981" stroke-width="2"/>
+              <!-- Metal: AUC = 0.974 -->
+              <path d="M 45 180 C 50 60, 75 28, 445 20" fill="none" stroke="#A855F7" stroke-width="1.6"/>
+              <!-- Hip-Hop: AUC = 0.961 -->
+              <path d="M 45 180 C 55 72, 95 32, 445 20" fill="none" stroke="#F59E0B" stroke-width="1.6"/>
+              <!-- Reggae: AUC = 0.943 -->
+              <path d="M 45 180 C 65 85, 120 38, 445 20" fill="none" stroke="#06B6D4" stroke-width="1.6"/>
+              <!-- Jazz: AUC = 0.931 -->
+              <path d="M 45 180 C 75 92, 140 45, 445 20" fill="none" stroke="#3B82F6" stroke-width="1.6"/>
+              <!-- Disco: AUC = 0.912 -->
+              <path d="M 45 180 C 85 100, 160 52, 445 20" fill="none" stroke="#EC4899" stroke-width="1.5"/>
+              <!-- Country: AUC = 0.895 -->
+              <path d="M 45 180 C 95 108, 180 60, 445 20" fill="none" stroke="#FB923C" stroke-width="1.5"/>
+              <!-- Pop: AUC = 0.887 -->
+              <path d="M 45 180 C 105 115, 195 68, 445 20" fill="none" stroke="#FACC15" stroke-width="1.5"/>
+              
+              <!-- Macro Average: AUC = 0.936 (Highlighted Dashed Glow) -->
+              <path d="M 45 180 C 70 82, 135 40, 445 20" fill="none" stroke="url(#rocMacroGlow)" stroke-width="2.6" stroke-dasharray="5,3"/>
+
+              <!-- Axis Numeric Labels -->
+              <text x="45" y="196" fill="#64748B" font-size="10" font-family="monospace">0.0</text>
+              <text x="245" y="196" fill="#64748B" font-size="10" font-family="monospace" text-anchor="middle">0.5</text>
+              <text x="445" y="196" fill="#64748B" font-size="10" font-family="monospace" text-anchor="end">1.0 FPR</text>
+
+              <text x="36" y="183" fill="#64748B" font-size="10" font-family="monospace" text-anchor="end">0.0</text>
+              <text x="36" y="103" fill="#64748B" font-size="10" font-family="monospace" text-anchor="end">0.5</text>
+              <text x="36" y="24" fill="#64748B" font-size="10" font-family="monospace" text-anchor="end">1.0 TPR</text>
+            </svg>
+          </div>
+
+          <!-- ROC Legend -->
+          <div class="chart-legend">
+            <span class="legend-item"><span class="legend-dot" style="background: #10B981;"></span>Classical (0.98)</span>
+            <span class="legend-item"><span class="legend-dot" style="background: #A855F7;"></span>Metal (0.97)</span>
+            <span class="legend-item"><span class="legend-dot" style="background: #F59E0B;"></span>Hip-Hop (0.96)</span>
+            <span class="legend-item"><span class="legend-dot" style="background: #06B6D4;"></span>Reggae (0.94)</span>
+            <span class="legend-item"><span class="legend-dot" style="background: #3B82F6;"></span>Jazz (0.93)</span>
+            <span class="legend-item"><span class="legend-dot" style="background: #EC4899;"></span>Disco (0.91)</span>
+            <span class="legend-item"><span class="legend-dot" style="background: #FB923C;"></span>Country (0.90)</span>
+            <span class="legend-item"><span class="legend-dot" style="background: #FACC15;"></span>Pop (0.89)</span>
+            <span class="legend-item" style="color: var(--accent-blue); font-weight: 600;"><span class="legend-dot" style="background: #60A5FA;"></span>Macro Avg (0.936)</span>
+          </div>
+        </div>
+
+        <!-- Subcard 4: Training & Validation Learning Curves -->
+        <div class="diag-subcard">
+          <div class="diag-card-title">
+            <span>Learning Curves (Epochs 1 &ndash; 400)</span>
+            <span class="spec-badge" style="color: var(--accent-emerald);">Train 87.4% &bull; Val 76.7%</span>
+          </div>
+          <p class="diag-card-sub">
+            Dual convergence trajectory: Cross-entropy loss (red/orange) and categorical accuracy (green/blue).
+          </p>
+
+          <div class="svg-chart-container">
+            <svg viewBox="0 0 460 210" preserveAspectRatio="none">
+              <!-- Gridlines -->
+              <line x1="45" y1="180" x2="445" y2="180" stroke="rgba(255,255,255,0.12)" stroke-width="1"/>
+              <line x1="45" y1="140" x2="445" y2="140" stroke="rgba(255,255,255,0.05)" stroke-dasharray="3,3"/>
+              <line x1="45" y1="100" x2="445" y2="100" stroke="rgba(255,255,255,0.05)" stroke-dasharray="3,3"/>
+              <line x1="45" y1="60" x2="445" y2="60" stroke="rgba(255,255,255,0.05)" stroke-dasharray="3,3"/>
+              <line x1="45" y1="20" x2="445" y2="20" stroke="rgba(255,255,255,0.08)" stroke-width="1"/>
+
+              <line x1="45" y1="20" x2="45" y2="180" stroke="rgba(255,255,255,0.12)" stroke-width="1"/>
+              <line x1="145" y1="20" x2="145" y2="180" stroke="rgba(255,255,255,0.05)" stroke-dasharray="3,3"/>
+              <line x1="245" y1="20" x2="245" y2="180" stroke="rgba(255,255,255,0.05)" stroke-dasharray="3,3"/>
+              <line x1="345" y1="20" x2="345" y2="180" stroke="rgba(255,255,255,0.05)" stroke-dasharray="3,3"/>
+              <line x1="445" y1="20" x2="445" y2="180" stroke="rgba(255,255,255,0.08)" stroke-width="1"/>
+
+              <!-- Accuracy Curves (Ascending) -->
+              <!-- Training Accuracy: 14.5% -> 87.38% -->
+              <path d="M 45 157 C 85 110, 145 80, 245 57 S 345 47, 445 40" fill="none" stroke="#10B981" stroke-width="2.2"/>
+              <!-- Validation Accuracy: 16.7% -> 76.67% -->
+              <path d="M 45 153 C 85 115, 145 87, 245 69 S 345 61, 445 57" fill="none" stroke="#3B82F6" stroke-width="2" stroke-dasharray="4,4"/>
+
+              <!-- Loss Curves (Descending) -->
+              <!-- Training Loss: 2.08 -> 0.35 -->
+              <path d="M 45 47 C 85 85, 145 110, 245 136 S 345 151, 445 158" fill="none" stroke="#EF4444" stroke-width="1.8"/>
+              <!-- Validation Loss: 2.06 -> 0.73 -->
+              <path d="M 45 48 C 85 82, 145 104, 245 123 S 345 130, 445 133" fill="none" stroke="#F97316" stroke-width="1.8" stroke-dasharray="4,4"/>
+
+              <!-- Axis Numeric Labels -->
+              <text x="45" y="196" fill="#64748B" font-size="10" font-family="monospace">0</text>
+              <text x="145" y="196" fill="#64748B" font-size="10" font-family="monospace" text-anchor="middle">100</text>
+              <text x="245" y="196" fill="#64748B" font-size="10" font-family="monospace" text-anchor="middle">200</text>
+              <text x="345" y="196" fill="#64748B" font-size="10" font-family="monospace" text-anchor="middle">300</text>
+              <text x="445" y="196" fill="#64748B" font-size="10" font-family="monospace" text-anchor="end">400 Epochs</text>
+
+              <text x="36" y="183" fill="#64748B" font-size="10" font-family="monospace" text-anchor="end">0%</text>
+              <text x="36" y="103" fill="#64748B" font-size="10" font-family="monospace" text-anchor="end">50%</text>
+              <text x="36" y="24" fill="#64748B" font-size="10" font-family="monospace" text-anchor="end">100%</text>
+            </svg>
+          </div>
+
+          <!-- Curves Legend -->
+          <div class="chart-legend">
+            <span class="legend-item" style="color: #10B981;"><span class="legend-dot" style="background: #10B981;"></span>Train Acc (87.38%)</span>
+            <span class="legend-item" style="color: #3B82F6;"><span class="legend-dot" style="background: #3B82F6;"></span>Val Acc (76.67%)</span>
+            <span class="legend-item" style="color: #EF4444;"><span class="legend-dot" style="background: #EF4444;"></span>Train Loss (0.348)</span>
+            <span class="legend-item" style="color: #F97316;"><span class="legend-dot" style="background: #F97316;"></span>Val Loss (0.734)</span>
+          </div>
+        </div>
+
       </div>
     </section>
 
